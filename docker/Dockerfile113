@@ -1,0 +1,48 @@
+FROM nvidia/cudagl:11.3.0-devel-ubuntu20.04
+SHELL ["/bin/bash", "-c"]
+# Set the timezone info because otherwise tzinfo blocks install 
+# flow and ignores the non-interactive frontend command 🤬🤬🤬
+RUN ln -snf /usr/share/zoneinfo/America/New_York /etc/localtime && echo "/usr/share/zoneinfo/America/New_York" > /etc/timezone
+
+# Core system packages
+RUN apt-get update --fix-missing
+RUN apt install -y software-properties-common wget curl gpg gcc git make
+
+# Install miniconda to /miniconda
+RUN curl -LO http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+RUN bash Miniconda3-latest-Linux-x86_64.sh -p /miniconda -b
+RUN rm Miniconda3-latest-Linux-x86_64.sh
+ENV PATH=/miniconda/bin:${PATH}
+RUN conda update -y conda
+
+RUN apt install -y apt-utils
+
+# Additional dev packages
+RUN apt install -y --no-install-recommends libssl-dev libmodule-install-perl libboost-all-dev libopenblas-dev
+RUN apt install -y locate nano
+
+RUN conda update conda -y
+
+ENV TORCH_CUDA_ARCH_LIST="Ampere;Turing;Pascal"
+ENV FORCE_CUDA="1"
+RUN conda install python=3.9 pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch -y
+RUN pip install openmim
+RUN mim install mmcv-full
+RUN mim install mmdet
+RUN mim install mmsegmentation
+ENV FORCE_CUDA="1"
+RUN pip install "networkx>=2.2,<2.3" numba==0.53.0 lyft_dataset_sdk plyfile scikit-image tensorboard "trimesh>=2.35.39,<2.35.40"
+ENV MAX_JOBS=16
+RUN echo $MAX_JOBS
+RUN pip install -U git+https://github.com/NVIDIA/MinkowskiEngine --install-option="--force_cuda" --install-option="--blas=openblas" -v --no-deps
+RUN git clone -b 'v1.0.0rc3' --single-branch --depth 1 https://github.com/open-mmlab/mmdetection3d.git /mmdetection3dinstall
+WORKDIR /mmdetection3dinstall
+RUN pip install -v -e .
+RUN pip install av2
+RUN pip install "networkx==2.5"
+RUN pip install nuscenes-devkit
+# Env variables to shut up mmdet warnings about them not being set by default. TODO: consider tuning these values.
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV PYTHONPATH="/project/mmdetection3d:/project:${PYTHONPATH}"
+WORKDIR /project/mmdetection3d
