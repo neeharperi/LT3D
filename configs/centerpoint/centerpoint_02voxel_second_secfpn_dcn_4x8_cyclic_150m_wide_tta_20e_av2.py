@@ -57,18 +57,7 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 
 NMS = ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", 
        "W", "W", "W", "W", "W", "W", "W", "W", "W", "W", 
-       "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
-#NMS = ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
-#     "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
-#      "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
-
-GROUP = ['REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER', 'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 
-        'MOBILE_PEDESTRIAN_CROSSING_SIGN', 'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS', 'MESSAGE_BOARD_TRAILER', 
-        'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG', "VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
-#GROUP = ['VEHICLE', 'VULNERABLE', 'VULNERABLE', 'VULNERABLE', 'VULNERABLE', 'MOVABLE', 'MOVABLE', 'MOVABLE', 'MOVABLE', 'MOVABLE', 
-#        'MOVABLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'VEHICLE', 'MOVABLE', 
-#        'VULNERABLE', 'VULNERABLE', 'VULNERABLE', 'VULNERABLE', 'VULNERABLE', 'VULNERABLE', "VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
-GROUP = [TOTAL_CLASS_NAMES.index(g) for g in GROUP]
+       "W", "W", "W", "W", "W", "W"]
 
 model = dict(
     type='CenterPoint',
@@ -160,8 +149,7 @@ model = dict(
             post_max_size=500,
             nms_thr=0.2,
             wide=WIDE,
-            nms=NMS, 
-            group=GROUP)))
+            nms=NMS)))
 
 db_sampler = dict(
 data_root=data_root,
