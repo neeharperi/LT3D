@@ -23,7 +23,7 @@ WIDE_DIM=512
 SAMPLER_TYPE = "STANDARD"
 
 voxel_size = [0.075, 0.075, 0.2]
-point_cloud_range = [-54, -54, -3, 54, 54, 3]
+point_cloud_range = [-102, -102, -3, 102, 102, 3]
 sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 grid_size = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2])]
 
@@ -35,7 +35,7 @@ CLASS_NAMES = [
     'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG'
 ]
 
-TOTAL_CLASS_NAMES = CLASS_NAMES + ["VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
+TOTAL_CLASS_NAMES = CLASS_NAMES
 
 TASK_NAMES = {"STANDARD": ['REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER', 'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 
                             'MOBILE_PEDESTRIAN_CROSSING_SIGN', 'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS', 'MESSAGE_BOARD_TRAILER', 
@@ -329,7 +329,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=0,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         data_root=data_root,

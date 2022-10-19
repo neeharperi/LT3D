@@ -9,9 +9,12 @@ model = dict(
         norm_cfg=dict(type='BN', requires_grad=False),
         norm_eval=True,
         style='caffe',
+        dcn=dict(type='DCNv2', deform_groups=1, fallback_on_stride=False),
+            stage_with_dcn=(False, False, True, True))
         init_cfg=dict(
             type='Pretrained',
             checkpoint='open-mmlab://detectron2/resnet101_caffe')),
+            
     neck=dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
