@@ -21,6 +21,7 @@ input_modality = dict(
 WIDE = True
 WIDE_DIM=512
 
+USE_SAMPLER = True
 sampler_type = "standard"
 
 voxel_size = [0.075, 0.075, 0.2]
@@ -59,14 +60,6 @@ NMS = ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W",
        "W", "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
 #NMS = ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
 #       "A", "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
-
-GROUP = ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle',
-                    'adult', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 
-                    'pushable_pullable', 'debris', 'traffic_cone', 'barrier', "vehicle", "pedestrian", "movable", "object"]
-#GROUP = ['vehicle', 'vehicle', 'vehicle', 'vehicle', 'vehicle', 'vehicle', 'vehicle', 'vehicle',
-#         'pedestrian', 'pedestrian', 'pedestrian', 'pedestrian', 'pedestrian', 'pedestrian', 
-#         'movable', 'movable', 'movable', 'movable', "vehicle", "pedestrian", "movable", "object"]
-GROUP = [total_class_names.index(g) for g in GROUP]
 
 model = dict(
     type='CenterPoint',
@@ -158,8 +151,7 @@ model = dict(
             post_max_size=500,
             nms_thr=0.2,
             wide=WIDE,
-            nms=NMS, 
-            group=GROUP)))
+            nms=NMS)))
 
 db_sampler = dict(
 data_root=data_root,
@@ -218,42 +210,77 @@ sample_groups=dict(
         use_dim=[0, 1, 2, 3, 4],
         file_client_args=file_client_args))
 
-train_pipeline = [
-    dict(
-        type='LoadPointsFromFile',
-        coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5,
-        file_client_args=file_client_args),
-    dict(
-        type='LoadPointsFromMultiSweeps',
-        sweeps_num=9,
-        use_dim=[0, 1, 2, 3, 4],
-        file_client_args=file_client_args,
-        pad_empty_sweeps=True,
-        remove_close=True),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='ObjectSample', db_sampler=db_sampler),
-    dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.3925, 0.3925],
-        scale_ratio_range=[0.95, 1.05],
-        translation_std=[0, 0, 0]),
-    dict(
-        type='RandomFlip3D',
-        sync_2d=False,
-        flip_ratio_bev_horizontal=0.5,
-        flip_ratio_bev_vertical=0.5),
-    dict(type='ObjectNameExpansion', classes=class_names, task_names=task_names, class_mapping=class_mapping),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=total_class_names),
-    dict(type='PointShuffle'),
-    dict(type='DefaultFormatBundle3D', class_names=total_class_names),
-    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
-]
-
+if USE_SAMPLER:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=5,
+            use_dim=5,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweeps',
+            sweeps_num=9,
+            use_dim=[0, 1, 2, 3, 4],
+            file_client_args=file_client_args,
+            pad_empty_sweeps=True,
+            remove_close=True),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectSample', db_sampler=db_sampler),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(
+            type='RandomFlip3D',
+            sync_2d=False,
+            flip_ratio_bev_horizontal=0.5,
+            flip_ratio_bev_vertical=0.5),
+        dict(type='ObjectNameExpansion', classes=class_names, task_names=task_names, class_mapping=class_mapping),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=total_class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=total_class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+else:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=5,
+            use_dim=5,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweeps',
+            sweeps_num=9,
+            use_dim=[0, 1, 2, 3, 4],
+            file_client_args=file_client_args,
+            pad_empty_sweeps=True,
+            remove_close=True),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(
+            type='RandomFlip3D',
+            sync_2d=False,
+            flip_ratio_bev_horizontal=0.5,
+            flip_ratio_bev_vertical=0.5),
+        dict(type='ObjectNameExpansion', classes=class_names, task_names=task_names, class_mapping=class_mapping),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=total_class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=total_class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
 
 test_pipeline = [
     dict(

@@ -650,16 +650,12 @@ class CenterHead(BaseModule):
         """
         wide = self.test_cfg.get('wide', False)
         nms = self.test_cfg.get('nms', None)
-        group = self.test_cfg.get('group', None)
 
         rets = []
         for task_id, preds_dict in enumerate(preds_dicts):
             num_class_with_bg = self.num_classes[task_id]
             batch_size = preds_dict[0]['heatmap'].shape[0]
             batch_heatmap = preds_dict[0]['heatmap'].sigmoid()
-
-            if group is not None:
-                batch_heatmap = batch_heatmap[:, group]
 
             batch_reg = preds_dict[0]['reg']
             batch_hei = preds_dict[0]['height']
@@ -715,7 +711,7 @@ class CenterHead(BaseModule):
                 rets.append(
                     self.get_task_detections(num_class_with_bg,
                                              batch_cls_preds, batch_reg_preds,
-                                             batch_cls_labels, img_metas, wide, nms, group))
+                                             batch_cls_labels, img_metas, wide, nms))
 
         # Merge branches results
         num_samples = len(rets[0])
@@ -740,7 +736,7 @@ class CenterHead(BaseModule):
         return ret_list
 
     def get_task_detections(self, num_class_with_bg, batch_cls_preds,
-                            batch_reg_preds, batch_cls_labels, img_metas, wide, nms, group):
+                            batch_reg_preds, batch_cls_labels, img_metas, wide, nms):
         """Rotate nms for each task.
 
         Args:

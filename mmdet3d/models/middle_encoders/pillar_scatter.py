@@ -86,7 +86,6 @@ class PointPillarsScatter(nn.Module):
             voxels = voxel_features[batch_mask, :]
             voxels = voxels.t()
 
-            import pdb; pdb.set_trace()
             # Now scatter the blob back to the canvas.
             canvas[:, indices] = voxels
 
