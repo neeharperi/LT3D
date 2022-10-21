@@ -3,10 +3,10 @@ conda create -n mmdet3d python=3.8
 conda activate mmdet3d
 
 conda install -y -c anaconda cmake
-conda install -y pytorch=1.11.0 torchvision==0.12.0 torchaudio=0.11.0 cudatoolkit=11.3 -c pytorch
+conda install -y pytorch=-1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
 
 pip install openmim
-pip install mmcv-full==1.6.1 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.11.0/index.html
+pip install mmcv-full==1.6.1 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.11.0/index.html
 mim install mmdet
 mim install mmsegmentation
 
