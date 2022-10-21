@@ -595,12 +595,21 @@ class CenterHead(BaseModule):
         Returns:
             dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
         """
+        hierarchy = self.train_cfg.get('hierarchy', None)
+
         heatmaps, anno_boxes, inds, masks = self.get_targets(
             gt_bboxes_3d, gt_labels_3d)
         loss_dict = dict()
         for task_id, preds_dict in enumerate(preds_dicts):
             # heatmap focal loss
             preds_dict[0]['heatmap'] = clip_sigmoid(preds_dict[0]['heatmap'])
+            if hierarchy is not None and hierarchy["TRAIN"] is True:
+                heatmap_hierarchy = []
+                for group in hierarchy["GROUP"]:
+                    heatmap_hierarchy.append(torch.prod(preds_dict[0]['heatmap'][:, group], 1))
+
+                preds_dict[0]['heatmap'] = torch.stack(heatmap_hierarchy, axis=1)
+
             num_pos = heatmaps[task_id].eq(1).float().sum().item()
             loss_heatmap = self.loss_cls(
                 preds_dict[0]['heatmap'],
@@ -650,12 +659,20 @@ class CenterHead(BaseModule):
         """
         wide = self.test_cfg.get('wide', False)
         nms = self.test_cfg.get('nms', None)
+        hierarchy = self.test_cfg.get('hierarchy', None)
 
         rets = []
         for task_id, preds_dict in enumerate(preds_dicts):
             num_class_with_bg = self.num_classes[task_id]
             batch_size = preds_dict[0]['heatmap'].shape[0]
             batch_heatmap = preds_dict[0]['heatmap'].sigmoid()
+
+            if hierarchy is not None and hierarchy["TEST"] is True:
+                heatmap_hierarchy = []
+                for group in hierarchy["GROUP"]:
+                    heatmap_hierarchy.append(torch.prod(preds_dict[0]['heatmap'][:, group], 1))
+
+                batch_heatmap = torch.stack(heatmap_hierarchy, axis=1)
 
             batch_reg = preds_dict[0]['reg']
             batch_hei = preds_dict[0]['height']

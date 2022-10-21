@@ -23,8 +23,6 @@ WIDE_DIM=512
 USE_SAMPLER = True
 SAMPLER_TYPE = "STANDARD"
 
-HIERARCHICAL_SOFTMAX = False 
-
 voxel_size = [0.075, 0.075, 0.2]
 point_cloud_range = [-54, -54, -3, 54, 54, 3]
 sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
@@ -65,6 +63,17 @@ NMS = ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W",
 #     "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
 #      "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
 
+HIERARCHICAL_SOFTMAX = [['REGULAR_VEHICLE', 'VEHICLE', 'OBJECT'], ['PEDESTRIAN', 'VULNERABLE', 'OBJECT'], ['BICYCLIST', 'VULNERABLE', 'OBJECT'], ['MOTORCYCLIST', 'VULNERABLE', 'OBJECT'], ['WHEELED_RIDER', 'VULNERABLE', 'OBJECT'],
+                        ['BOLLARD', 'MOVABLE', 'OBJECT'], ['CONSTRUCTION_CONE', 'MOVABLE', 'OBJECT'], ['SIGN', 'MOVABLE', 'OBJECT'], ['CONSTRUCTION_BARREL', 'MOVABLE', 'OBJECT'], ['STOP_SIGN', 'MOVABLE', 'OBJECT'], 
+                        ['MOBILE_PEDESTRIAN_CROSSING_SIGN', 'MOVABLE', 'OBJECT'], ['LARGE_VEHICLE', 'VEHICLE', 'OBJECT'], ['BUS', 'VEHICLE', 'OBJECT'], ['BOX_TRUCK', 'VEHICLE', 'OBJECT'], ['TRUCK', 'VEHICLE', 'OBJECT'], ['VEHICULAR_TRAILER', 'VEHICLE', 'OBJECT'],
+                        ['TRUCK_CAB', 'VEHICLE', 'OBJECT'], ['SCHOOL_BUS', 'VEHICLE', 'OBJECT'], ['ARTICULATED_BUS', 'VEHICLE', 'OBJECT'], ['MESSAGE_BOARD_TRAILER', 'MOVABLE', 'OBJECT'], 
+                        ['BICYCLE', 'VULNERABLE', 'OBJECT'], ['MOTORCYCLE', 'VULNERABLE', 'OBJECT'], ['WHEELED_DEVICE', 'VULNERABLE', 'OBJECT'], ['WHEELCHAIR', 'VULNERABLE', 'OBJECT'], ['STROLLER', 'VULNERABLE', 'OBJECT'], ['DOG', 'VULNERABLE', 'OBJECT'],
+                        ['VEHICLE'], ['VULNERABLE'], ['MOVABLE'], ['OBJECT']]
+
+HIERARCHICAL_SOFTMAX = [[TOTAL_CLASS_NAMES.index(g) for g in hs] for hs in HIERARCHICAL_SOFTMAX]
+HIERARCHY = {"TRAIN" : False,
+             "TEST" : False,
+             "GROUP" : HIERARCHICAL_SOFTMAX}
 
 model = dict(
     type='CenterPoint',
@@ -137,7 +146,8 @@ model = dict(
             gaussian_overlap=0.1,
             max_objs=500,
             min_radius=2,
-            code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2])),
+            code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2],
+            hierarchy=HIERARCHY)),
     test_cfg=dict(
         pts=dict(
             grid_size=grid_size,
@@ -156,7 +166,9 @@ model = dict(
             post_max_size=500,
             nms_thr=0.2,
             wide=WIDE,
-            nms=NMS)))
+            nms=NMS,
+            hierarchy=HIERARCHY,
+            )))
 
 db_sampler = dict(
 data_root=data_root,
