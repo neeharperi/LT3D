@@ -23,7 +23,7 @@ WIDE_DIM=512
 SAMPLER_TYPE = "STANDARD"
 
 voxel_size = [0.2, 0.2, 0.2]
-point_cloud_range = [-150, -150, -3, 150, 150, 3]
+point_cloud_range = [-152, -152, -3, 152, 152, 3]
 sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 grid_size = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2])]
 
