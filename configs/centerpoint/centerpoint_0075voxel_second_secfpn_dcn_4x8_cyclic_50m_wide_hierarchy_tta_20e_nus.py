@@ -57,9 +57,9 @@ class_mapping = {"standard": [['car'], ['truck'], ['trailer'], ['bus'], ['constr
                  }
 
 nms = ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", 
-       "W", "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
+       "W", "W", "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
 #nms = ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
-#       "A", "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
+#       "A", "A", "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
 
 hierarchical_softmax = [['car', 'vehicle', 'object'], ['truck', 'vehicle', 'object'], ['trailer', 'vehicle', 'object'], ['bus', 'vehicle', 'object'], ['construction_vehicle', 'vehicle', 'object'], ['bicycle', 'vehicle', 'object'], ['motorcycle', 'vehicle', 'object'], ['emergency_vehicle', 'vehicle', 'object'], 
                         ['adult', 'pedestrian', 'object'], ['child', 'pedestrian', 'object'], ['police_officer', 'pedestrian', 'object'], ['construction_worker', 'pedestrian', 'object'], ['stroller', 'pedestrian', 'object'], ['personal_mobility', 'pedestrian', 'object'], 

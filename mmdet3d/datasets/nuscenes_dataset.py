@@ -589,13 +589,13 @@ class NuScenesDataset(Custom3DDataset):
 
         metric = kwargs.get("metric", None)
 
-        result_files, tmp_dir = self.format_results(results)
+        result_files, tmp_dir = self.format_results(results, out_path)
 
         if isinstance(result_files, dict):
             results_dict = dict()
             for name in ['pts_bbox']:
                 print('Evaluating bboxes of {}'.format(name))
-                ret_dict = self._evaluate_single(result_files[name], out_path=out_path, metricc=metric)
+                ret_dict = self._evaluate_single(result_files[name], out_path=out_path, metric_type=metric)
             results_dict.update(ret_dict)
         elif isinstance(result_files, str):
             results_dict = self._evaluate_single(result_files)
