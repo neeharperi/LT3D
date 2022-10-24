@@ -567,7 +567,14 @@ class AV2Dataset(Dataset):
             predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
         for max_range in [50, 100, 150]:
-            cfg = DetectionCfg(dataset_dir = Path("/ssd0/nperi/Sensor/{}".format(split)), max_range_m=max_range)
+            user = os.getlogin()
+
+            if user == "nperi":
+                data_root = '/ssd0/nperi/Sensor/'
+            elif user == "ubuntu":
+                data_root = "/home/ubuntu/Workspace/Data/Sensor/"
+
+            cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
 
             _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
         

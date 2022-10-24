@@ -491,9 +491,11 @@ class NuScenesDataset(Custom3DDataset):
                 detection_dataFrame["LCA0"].append(np.mean(l0))
                 detection_dataFrame["LCA1"].append(np.mean(l1))
                 detection_dataFrame["LCA2"].append(np.mean(l2))
-        
+        else:
+            assert False, "{} is Invalid".format(metric_type)
+
         detection_dataFrame = pd.DataFrame.from_dict(detection_dataFrame)
-        detection_dataFrame.to_csv(out_path + "/" + "nus_" + metric + ".csv", index=False)
+        detection_dataFrame.to_csv(out_path + "/" + "nus_" + metric_type + ".csv", index=False)
 
         detail = dict()
         metric_prefix = f'{result_name}_NuScenes'
@@ -587,7 +589,7 @@ class NuScenesDataset(Custom3DDataset):
         #    pipeline = kwargs.get("pipeline", None)
         #    self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
 
-        metric = kwargs.get("metric", None)
+        metric = kwargs.get("metric_type", None)
 
         result_files, tmp_dir = self.format_results(results, out_path)
 
@@ -595,7 +597,7 @@ class NuScenesDataset(Custom3DDataset):
             results_dict = dict()
             for name in ['pts_bbox']:
                 print('Evaluating bboxes of {}'.format(name))
-                ret_dict = self._evaluate_single(result_files[name], out_path=out_path, metric_type=metric)
+                ret_dict = self._evaluate_single(result_files[name], out_path=out_path, metric_type=metric_type)
             results_dict.update(ret_dict)
         elif isinstance(result_files, str):
             results_dict = self._evaluate_single(result_files)
