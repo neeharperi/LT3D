@@ -18,6 +18,7 @@ from pathlib import Path
 from ..core import show_result
 from ..core.bbox import Box3DMode, Coord3DMode, LiDARInstance3DBoxes
 from collections import defaultdict
+import os 
 
 def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
@@ -554,17 +555,26 @@ class AV2Dataset(Dataset):
         #    pipeline = kwargs.get("pipeline", None)
         #    self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
 
-        predictionsDataFrame, groundTruthDataFrame = self.format_results(results)
-
-        if out_path is not None:
-            pd.DataFrame.to_csv(groundTruthDataFrame, out_path + "/{}_gt.csv".format(split))
-            pd.DataFrame.to_csv(predictionsDataFrame, out_path + "/{}_detections.csv".format(split))
-
         metric_type = kwargs.get("metric_type", None)
         filter = kwargs.get("filter", None)
-        if filter is not None: 
-            rgbPredictionsDataFrame = pd.read_csv(filter)
-            predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
+        predictions = kwargs.get("predictions", None)
+        ground_truth = kwargs.get("ground_truth", None)
+
+        if predictions is not None:
+            predictionsDataFrame = pd.read_csv(predictions)
+            groundTruthDataFrame = pd.read_csv(ground_truth)
+            
+        else:
+            predictionsDataFrame, groundTruthDataFrame = self.format_results(results)
+
+            if out_path is not None:
+                pd.DataFrame.to_csv(groundTruthDataFrame, out_path + "/{}_gt.csv".format(split))
+                pd.DataFrame.to_csv(predictionsDataFrame, out_path + "/{}_detections.csv".format(split))
+
+
+            if filter is not None: 
+                rgbPredictionsDataFrame = pd.read_csv(filter)
+                predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
         for max_range in [50, 100, 150]:
             user = os.getlogin()

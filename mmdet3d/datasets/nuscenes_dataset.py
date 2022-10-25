@@ -15,6 +15,24 @@ from .custom_3d import Custom3DDataset
 from .pipelines import Compose
 import pandas as pd
 
+def distance_matrix(A, B, squared=False):
+    M = A.shape[0]
+    N = B.shape[0]
+
+    assert A.shape[1] == B.shape[1], f"The number of components for vectors in A \
+        {A.shape[1]} does not match that of B {B.shape[1]}!"
+
+    A_dots = (A*A).sum(axis=1).reshape((M,1))*np.ones(shape=(1,N))
+    B_dots = (B*B).sum(axis=1)*np.ones(shape=(M,1))
+    D_squared =  A_dots + B_dots -2*A.dot(B.T)
+
+    if squared == False:
+        zero_mask = np.less(D_squared, 0.0)
+        D_squared[zero_mask] = 0.0
+        return np.sqrt(D_squared)
+
+    return D_squared
+
 @DATASETS.register_module()
 class NuScenesDataset(Custom3DDataset):
     r"""NuScenes Dataset.
@@ -325,7 +343,42 @@ class NuScenesDataset(Custom3DDataset):
             gt_names=gt_names_3d)
         return anns_results
 
-    def _format_bbox(self, results, jsonfile_prefix=None):
+def multimodal_filter(self, predictions, rgb):
+    dist_th = 8
+    tokens = predictions["results"].keys()
+    filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
+
+    for sample_token in tokens:
+        lidar = predictions["results"][sample_token]
+        rgb = rgb["results"][sample_token]
+
+        filter_lidar = []
+        for name in CLASSES:
+            ld = [d for d in lidar if d["detection_name"] == name]
+            
+            if name in filter_classes:
+                rd = [d for d in rgb if d["detection_name"] == name]
+
+                anchor_center = box_center(rd)
+                group_center = box_center(ld)
+
+                if len(anchor_center) == 0 or len(group_center) == 0:
+                    continue 
+                
+                dist_mat = distance_matrix(anchor_center, group_center)
+                dist = np.min(dist_mat, axis=0)
+
+                for box, dst in zip(ld, dist):
+                    if dst < dist_th:
+                        filter_lidar.append(box)
+            else:
+                filter_lidar += list(np.array(ld))
+
+        predictions["results"][sample_token] = filter_lidar
+
+        return predictions
+
+    def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
 
         Args:
@@ -388,11 +441,16 @@ class NuScenesDataset(Custom3DDataset):
             'results': nusc_annos,
         }
 
+        if filter is not None: 
+            rgb = json.load(open(filter, "r"))
+            nusc_submissions = self.multimodal_filter(nusc_submissions, rgb)
+
         mmcv.mkdir_or_exist(jsonfile_prefix)
         res_path = osp.join(jsonfile_prefix, 'results_nusc.json')
         print('Results writes to', res_path)
         mmcv.dump(nusc_submissions, res_path)
-        return res_path
+
+        return res_path, nusc_submissions
 
     def _evaluate_single(self,
                          result_path,
@@ -438,9 +496,14 @@ class NuScenesDataset(Custom3DDataset):
         metrics = mmcv.load(osp.join(out_path, 'metrics_summary.json'))
 
         if metric_type == "standard":
+            detection_metrics = {"trans_err" : "ATE",
+                     "scale_err" : "ASE",
+                     "orient_err" : "AOE", 
+                     "vel_err" : "AVE",
+                     "attr_err" : "AAE"}
+
             detection_dataFrame = { "CLASS" : [],
                                 "mAP" : [],
-                                "mAR" : [],
                                 "ATE" : [],
                                 "ASE" : [],
                                 "AOE" : [],
@@ -453,7 +516,6 @@ class NuScenesDataset(Custom3DDataset):
 
             for classname in detection_dataFrame["CLASS"]:
                 detection_dataFrame["mAP"].append(metrics["mean_dist_aps"][classname])
-                detection_dataFrame["mAR"].append(metrics["mean_dist_ars"][classname])
                 
             classMetrics = metrics["label_tp_errors"]
             for metric in detection_metrics.keys():
@@ -515,7 +577,7 @@ class NuScenesDataset(Custom3DDataset):
         detail['{}/mAP'.format(metric_prefix)] = metrics['mean_ap']
         return detail
 
-    def format_results(self, results, jsonfile_prefix=None):
+    def format_results(self, results, jsonfile_prefix=None, filter=None):
         """Format the results to json (standard format for COCO evaluation).
 
         Args:
@@ -548,7 +610,7 @@ class NuScenesDataset(Custom3DDataset):
         # this is a workaround to enable evaluation of both formats on nuScenes
         # refer to https://github.com/open-mmlab/mmdetection3d/issues/449
         if not ('pts_bbox' in results[0] or 'img_bbox' in results[0]):
-            result_files = self._format_bbox(results, jsonfile_prefix)
+            result_files = self._format_bbox(results, jsonfile_prefix, filter)
         else:
             # should take the inner dict out of 'pts_bbox' or 'img_bbox' dict
             result_files = dict()
@@ -557,7 +619,7 @@ class NuScenesDataset(Custom3DDataset):
                 results_ = [out[name] for out in results]
                 tmp_file_ = osp.join(jsonfile_prefix, name)
                 result_files.update(
-                    {name: self._format_bbox(results_, tmp_file_)})
+                    {name: self._format_bbox(results_, tmp_file_, filter)})
         return result_files, tmp_dir
 
     def evaluate(self,
@@ -589,9 +651,10 @@ class NuScenesDataset(Custom3DDataset):
         #    pipeline = kwargs.get("pipeline", None)
         #    self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
 
-        metric = kwargs.get("metric_type", None)
+        metric_type = kwargs.get("metric_type", None)
+        filter = kwargs.get("filter", None)
 
-        result_files, tmp_dir = self.format_results(results, out_path)
+        result_files, tmp_dir = self.format_results(results, out_path, filter)
 
         if isinstance(result_files, dict):
             results_dict = dict()

@@ -41,6 +41,9 @@ def parse_args():
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument('--cached')
     parser.add_argument('--filter')
+    parser.add_argument('--predictions')
+    parser.add_argument('--ground_truth')
+
     parser.add_argument('--metric_type', default="standard")
     parser.add_argument(
         '--fuse-conv-bn',
@@ -248,6 +251,7 @@ def main():
         if args.cached:
             print(f'\nloading results from {args.cached}')
             outputs = mmcv.load(args.cached)
+
         kwargs = {} if args.eval_options is None else args.eval_options
         if args.format_only:
             dataset.format_results(outputs, **kwargs)
@@ -258,7 +262,11 @@ def main():
 
             if args.filter is not None:
                 eval_kwargs["filter"] = args.filter
-            
+
+            if args.predictions is not None:
+                eval_kwargs["predictions"] = args.predictions
+                eval_kwargs["ground_truth"] = args.ground_truth
+
             # hard-code way to remove EvalHook args
             for key in [
                     'interval', 'tmpdir', 'start', 'gpu_collect', 'save_best',
@@ -271,6 +279,8 @@ def main():
                 out_path = "/".join(args.out.split("/")[:-1])
             if args.cached is not None:
                 out_path = "/".join(args.cached.split("/")[:-1])
+            if args.predictions is not None:
+                out_path = "/".join(args.predictions.split("/")[:-1])
 
             print(dataset.evaluate(outputs, out_path, **eval_kwargs))
 
