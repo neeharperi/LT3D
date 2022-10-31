@@ -8,7 +8,7 @@ from mmcv.runner import auto_fp16
 
 from mmdet3d.core import Box3DMode, Coord3DMode, show_result
 from mmdet.models.detectors import BaseDetector
-
+from nntime import time_this
 
 class Base3DDetector(BaseDetector):
     """Base class for detectors."""
@@ -44,6 +44,7 @@ class Base3DDetector(BaseDetector):
         else:
             return self.aug_test(points, img_metas, img, **kwargs)
 
+    @time_this()
     @auto_fp16(apply_to=('img', 'points'))
     def forward(self, return_loss=True, **kwargs):
         """Calls either forward_train or forward_test depending on whether

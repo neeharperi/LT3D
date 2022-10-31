@@ -33,7 +33,7 @@ class_names = ('REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WH
     'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG')
 
 TRAIN_SAMPLE_RATE = 10
-VAL_SAMPLE_RATE = 1
+VAL_SAMPLE_RATE = 10
 VELOCITY_SAMPLING_RATE = 5
 
 def view_points(points: np.ndarray, view: np.ndarray, normalize: bool) -> np.ndarray:

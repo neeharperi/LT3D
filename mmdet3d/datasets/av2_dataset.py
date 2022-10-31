@@ -277,6 +277,96 @@ class AV2Dataset(Dataset):
 
         return class_names
 
+    def _build_default_pipeline(self):
+        """Build the default pipeline for this dataset."""
+        raise NotImplementedError('_build_default_pipeline is not implemented '
+                                  f'for dataset {self.__class__.__name__}')
+
+    def _get_pipeline(self, pipeline):
+        """Get data loading pipeline in self.show/evaluate function.
+        Args:
+            pipeline (list[dict]): Input pipeline. If None is given,
+                get from self.pipeline.
+        """
+        if pipeline is None:
+            if not hasattr(self, 'pipeline') or self.pipeline is None:
+                warnings.warn(
+                    'Use default pipeline for data loading, this may cause '
+                    'errors when data is on ceph')
+                return self._build_default_pipeline()
+            loading_pipeline = get_loading_pipeline(self.pipeline.transforms)
+            return Compose(loading_pipeline)
+        return Compose(pipeline)
+
+    def _extract_data(self, index, pipeline, key, load_annos=False):
+        """Load data using input pipeline and extract data according to key.
+        Args:
+            index (int): Index for accessing the target data.
+            pipeline (:obj:`Compose`): Composed data loading pipeline.
+            key (str | list[str]): One single or a list of data key.
+            load_annos (bool): Whether to load data annotations.
+                If True, need to set self.test_mode as False before loading.
+        Returns:
+            np.ndarray | torch.Tensor | list[np.ndarray | torch.Tensor]:
+                A single or a list of loaded data.
+        """
+        assert pipeline is not None, 'data loading pipeline is not provided'
+        # when we want to load ground-truth via pipeline (e.g. bbox, seg mask)
+        # we need to set self.test_mode as False so that we have 'annos'
+        if load_annos:
+            original_test_mode = self.test_mode
+            self.test_mode = False
+        input_dict = self.get_data_info(index)
+        self.pre_pipeline(input_dict)
+        example = pipeline(input_dict)
+
+        # extract data items according to keys
+        if isinstance(key, str):
+            data = extract_result_dict(example, key)
+        else:
+            data = [extract_result_dict(example, k) for k in key]
+        if load_annos:
+            self.test_mode = original_test_mode
+
+        return data
+
+    def __len__(self):
+        """Return the length of data infos.
+        Returns:
+            int: Length of data infos.
+        """
+        return len(self.data_infos)
+
+    def _rand_another(self, idx):
+        """Randomly get another item with the same flag.
+        Returns:
+            int: Another index of item with the same flag.
+        """
+        pool = np.where(self.flag == self.flag[idx])[0]
+        return np.random.choice(pool)
+
+    def __getitem__(self, idx):
+        """Get item from infos according to the given index.
+        Returns:
+            dict: Data dictionary of the corresponding index.
+        """
+        if self.test_mode:
+            return self.prepare_test_data(idx)
+        while True:
+            data = self.prepare_train_data(idx)
+            if data is None:
+                idx = self._rand_another(idx)
+                continue
+            return data
+
+    def _set_group_flag(self):
+        """Set flag according to image aspect ratio.
+        Images with aspect ratio greater than 1 will be set as group 1,
+        otherwise group 0. In 3D datasets, they are all the same, thus are all
+        zeros.
+        """
+        self.flag = np.zeros(len(self), dtype=np.uint8)
+        
     def format_results(self, outputs):
         """Format the results to be recognizable to the Argoverse eval script.
         Args:
@@ -576,114 +666,24 @@ class AV2Dataset(Dataset):
                 rgbPredictionsDataFrame = pd.read_csv(filter)
                 predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
-        for max_range in [50, 100, 150]:
-            user = os.getlogin()
+        max_range = 150
+        user = os.getlogin()
 
-            if user == "nperi":
-                data_root = '/ssd0/nperi/Sensor/'
-            elif user == "ubuntu":
-                data_root = "/home/ubuntu/Workspace/Data/Sensor/"
+        if user == "nperi":
+            data_root = '/ssd0/nperi/Sensor/'
+        elif user == "ubuntu":
+            data_root = "/home/ubuntu/Workspace/Data/Sensor/"
 
-            cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
+        cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
 
-            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
-        
-            print(metrics)
-            if out_path is not None:
-                filter_tag = "_filter" if filter is not None else ""
-                max_range_tag = "_{}m".format(max_range)
-                metric_tag = "_{}".format(metric_type)
+        _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
+    
+        print(metrics)
+        if out_path is not None:
+            filter_tag = "_filter" if filter is not None else ""
+            max_range_tag = "_{}m".format(max_range)
+            metric_tag = "_{}".format(metric_type)
 
-                pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, max_range_tag, metric_tag))
+            pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, max_range_tag, metric_tag))
 
         return metrics.to_json()
-
-    def _build_default_pipeline(self):
-        """Build the default pipeline for this dataset."""
-        raise NotImplementedError('_build_default_pipeline is not implemented '
-                                  f'for dataset {self.__class__.__name__}')
-
-    def _get_pipeline(self, pipeline):
-        """Get data loading pipeline in self.show/evaluate function.
-        Args:
-            pipeline (list[dict]): Input pipeline. If None is given,
-                get from self.pipeline.
-        """
-        if pipeline is None:
-            if not hasattr(self, 'pipeline') or self.pipeline is None:
-                warnings.warn(
-                    'Use default pipeline for data loading, this may cause '
-                    'errors when data is on ceph')
-                return self._build_default_pipeline()
-            loading_pipeline = get_loading_pipeline(self.pipeline.transforms)
-            return Compose(loading_pipeline)
-        return Compose(pipeline)
-
-    def _extract_data(self, index, pipeline, key, load_annos=False):
-        """Load data using input pipeline and extract data according to key.
-        Args:
-            index (int): Index for accessing the target data.
-            pipeline (:obj:`Compose`): Composed data loading pipeline.
-            key (str | list[str]): One single or a list of data key.
-            load_annos (bool): Whether to load data annotations.
-                If True, need to set self.test_mode as False before loading.
-        Returns:
-            np.ndarray | torch.Tensor | list[np.ndarray | torch.Tensor]:
-                A single or a list of loaded data.
-        """
-        assert pipeline is not None, 'data loading pipeline is not provided'
-        # when we want to load ground-truth via pipeline (e.g. bbox, seg mask)
-        # we need to set self.test_mode as False so that we have 'annos'
-        if load_annos:
-            original_test_mode = self.test_mode
-            self.test_mode = False
-        input_dict = self.get_data_info(index)
-        self.pre_pipeline(input_dict)
-        example = pipeline(input_dict)
-
-        # extract data items according to keys
-        if isinstance(key, str):
-            data = extract_result_dict(example, key)
-        else:
-            data = [extract_result_dict(example, k) for k in key]
-        if load_annos:
-            self.test_mode = original_test_mode
-
-        return data
-
-    def __len__(self):
-        """Return the length of data infos.
-        Returns:
-            int: Length of data infos.
-        """
-        return len(self.data_infos)
-
-    def _rand_another(self, idx):
-        """Randomly get another item with the same flag.
-        Returns:
-            int: Another index of item with the same flag.
-        """
-        pool = np.where(self.flag == self.flag[idx])[0]
-        return np.random.choice(pool)
-
-    def __getitem__(self, idx):
-        """Get item from infos according to the given index.
-        Returns:
-            dict: Data dictionary of the corresponding index.
-        """
-        if self.test_mode:
-            return self.prepare_test_data(idx)
-        while True:
-            data = self.prepare_train_data(idx)
-            if data is None:
-                idx = self._rand_another(idx)
-                continue
-            return data
-
-    def _set_group_flag(self):
-        """Set flag according to image aspect ratio.
-        Images with aspect ratio greater than 1 will be set as group 1,
-        otherwise group 0. In 3D datasets, they are all the same, thus are all
-        zeros.
-        """
-        self.flag = np.zeros(len(self), dtype=np.uint8)

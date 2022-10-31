@@ -17,6 +17,7 @@ from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_model
 from mmdet.apis import multi_gpu_test, set_random_seed
 from mmdet.datasets import replace_ImageToTensor
+from nntime import export_timings
 
 if mmdet.__version__ > '2.23.0':
     # If mmdet version > 2.23.0, setup_multi_processes would be imported and
@@ -38,13 +39,12 @@ def parse_args():
         description='MMDet test (and eval) a model')
     parser.add_argument('config', help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument('--metric_type',default="standard")
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument('--cached')
     parser.add_argument('--filter')
     parser.add_argument('--predictions')
     parser.add_argument('--ground_truth')
-
-    parser.add_argument('--metric_type', default="standard")
     parser.add_argument(
         '--fuse-conv-bn',
         action='store_true',
@@ -213,6 +213,7 @@ def main():
         # build the model and load checkpoint
         cfg.model.train_cfg = None
         model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
+
         fp16_cfg = cfg.get('fp16', None)
         if fp16_cfg is not None:
             wrap_fp16_model(model)
@@ -245,6 +246,7 @@ def main():
 
     rank, _ = get_dist_info()
     if rank == 0:
+        
         if args.out:
             print(f'\nwriting results to {args.out}')
             mmcv.dump(outputs, args.out)
@@ -281,6 +283,8 @@ def main():
                 out_path = "/".join(args.cached.split("/")[:-1])
             if args.predictions is not None:
                 out_path = "/".join(args.predictions.split("/")[:-1])
+            
+            export_timings(model, out_path + "/timing.csv")
 
             print(dataset.evaluate(outputs, out_path, **eval_kwargs))
 

@@ -11,7 +11,7 @@ class_names = [
 ]
 dataset_type = 'AV2Dataset'
 data_root = '/ssd0/nperi/Sensor/'
-VERSION = "av2_mmdet3d_mini"
+VERSION = "av2_mmdet3d_trainval"
 
 # Input modality for AV2 dataset, this is consistent with the submission
 # format which requires the information in input_modality.

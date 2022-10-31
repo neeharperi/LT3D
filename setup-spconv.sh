@@ -20,3 +20,4 @@ pip install pyntcloud
 pip install pyarrow
 pip uninstall -y nuscenes-devkit
 pip install setuptools==59.5.0
+pip install nntime

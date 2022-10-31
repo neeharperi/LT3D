@@ -8,8 +8,9 @@ import pyquaternion
 from nuscenes.utils.data_classes import Box as NuScenesBox
 from nuscenes.eval.detection.constants import DETECTION_NAMES
 
+from torch.utils.data import Dataset
 from ..core import show_result
-from ..core.bbox import Box3DMode, Coord3DMode, LiDARInstance3DBoxes
+from ..core.bbox import Box3DMode, Coord3DMode, LiDARInstance3DBoxes, get_box_type
 from .builder import DATASETS
 from .custom_3d import Custom3DDataset
 from .pipelines import Compose
@@ -34,7 +35,7 @@ def distance_matrix(A, B, squared=False):
     return D_squared
 
 @DATASETS.register_module()
-class NuScenesDataset(Custom3DDataset):
+class NuScenesDataset(Dataset):
     r"""NuScenes Dataset.
 
     This class serves as the API for experiments on the NuScenes Dataset.
@@ -164,38 +165,55 @@ class NuScenesDataset(Custom3DDataset):
                  box_type_3d='LiDAR',
                  filter_empty_gt=True,
                  test_mode=False,
+                 file_client_args=dict(backend='disk'), 
                  eval_version='detection_lt3d_hierarchy',
                  use_valid_flag=False,
                  sampler_type=None,
                  task_names=None,
                  class_mapping=None):
+        super().__init__()
+        self.data_root = data_root
+        self.ann_file = ann_file
+        self.pipeline = pipeline
         self.load_interval = load_interval
-        self.use_valid_flag = use_valid_flag
-        super().__init__(
-            data_root=data_root,
-            ann_file=ann_file,
-            pipeline=pipeline,
-            classes=classes,
-            modality=modality,
-            box_type_3d=box_type_3d,
-            filter_empty_gt=filter_empty_gt,
-            test_mode=test_mode)
+        self.with_velocity = with_velocity
+        self.test_mode = test_mode
+        self.modality = modality
+        self.filter_empty_gt = filter_empty_gt
+        self.box_type_3d, self.box_mode_3d = get_box_type(box_type_3d)
         self.sampler_type=sampler_type
         self.task_names=task_names
         self.class_mapping=class_mapping
-        self.with_velocity = with_velocity
         self.eval_version = eval_version
+        self.use_valid_flag = use_valid_flag
+        
+        self.CLASSES = self.get_classes(classes)
+        self.file_client = mmcv.FileClient(**file_client_args)
+        self.cat2id = {name: i for i, name in enumerate(self.CLASSES)}
+
         from nuscenes.eval.detection.config import config_factory
         self.eval_detection_configs = config_factory(self.eval_version)
-        if self.modality is None:
-            self.modality = dict(
-                use_camera=False,
-                use_lidar=True,
-                use_radar=False,
-                use_map=False,
-                use_external=False,
-            )
 
+        # load annotations
+        if hasattr(self.file_client, 'get_local_path'):
+            with self.file_client.get_local_path(self.ann_file) as local_path:
+                self.data_infos = self.load_annotations(open(local_path, 'rb'))
+        else:
+            warnings.warn(
+                'The used MMCV version does not have get_local_path. '
+                f'We treat the {self.ann_file} as local paths and it '
+                'might cause errors if the path is not a local path. '
+                'Please use MMCV>= 1.3.16 if you meet errors.')
+            self.data_infos = self.load_annotations(self.ann_file)
+
+        # process pipeline
+        if pipeline is not None:
+            self.pipeline = Compose(pipeline)
+
+        # set group flag for the samplers
+        if not self.test_mode:
+            self._set_group_flag()
+            
     def get_cat_ids(self, idx):
         """Get category distribution of single scene.
 
@@ -341,42 +359,220 @@ class NuScenesDataset(Custom3DDataset):
             gt_bboxes_3d=gt_bboxes_3d,
             gt_labels_3d=gt_labels_3d,
             gt_names=gt_names_3d)
+        
         return anns_results
 
-def multimodal_filter(self, predictions, rgb):
-    dist_th = 8
-    tokens = predictions["results"].keys()
-    filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
 
-    for sample_token in tokens:
-        lidar = predictions["results"][sample_token]
-        rgb = rgb["results"][sample_token]
+    def pre_pipeline(self, results):
+        """Initialization before data preparation.
+        Args:
+            results (dict): Dict before data preprocessing.
+                - img_fields (list): Image fields.
+                - bbox3d_fields (list): 3D bounding boxes fields.
+                - pts_mask_fields (list): Mask fields of points.
+                - pts_seg_fields (list): Mask fields of point segments.
+                - bbox_fields (list): Fields of bounding boxes.
+                - mask_fields (list): Fields of masks.
+                - seg_fields (list): Segment fields.
+                - box_type_3d (str): 3D box type.
+                - box_mode_3d (str): 3D box mode.
+        """
+        results['img_fields'] = []
+        results['bbox3d_fields'] = []
+        results['pts_mask_fields'] = []
+        results['pts_seg_fields'] = []
+        results['bbox_fields'] = []
+        results['mask_fields'] = []
+        results['seg_fields'] = []
+        results['box_type_3d'] = self.box_type_3d
+        results['box_mode_3d'] = self.box_mode_3d
 
-        filter_lidar = []
-        for name in CLASSES:
-            ld = [d for d in lidar if d["detection_name"] == name]
-            
-            if name in filter_classes:
-                rd = [d for d in rgb if d["detection_name"] == name]
+    def prepare_train_data(self, index):
+        """Training data preparation.
+        Args:
+            index (int): Index for accessing the target data.
+        Returns:
+            dict: Training data dict of the corresponding index.
+        """
+        input_dict = self.get_data_info(index)
+        if input_dict is None:
+            return None
+        self.pre_pipeline(input_dict)
+        example = self.pipeline(input_dict)
+        if self.filter_empty_gt and \
+                (example is None or
+                    ~(example['gt_labels_3d']._data != -1).any()):
+            return None
+        return example
 
-                anchor_center = box_center(rd)
-                group_center = box_center(ld)
+    def prepare_test_data(self, index):
+        """Prepare data for testing.
+        Args:
+            index (int): Index for accessing the target data.
+        Returns:
+            dict: Testing data dict of the corresponding index.
+        """
+        input_dict = self.get_data_info(index)
+        self.pre_pipeline(input_dict)
+        example = self.pipeline(input_dict)
+        return example
 
-                if len(anchor_center) == 0 or len(group_center) == 0:
-                    continue 
+    @classmethod
+    def get_classes(cls, classes=None):
+        """Get class names of current dataset.
+        Args:
+            classes (Sequence[str] | str): If classes is None, use
+                default CLASSES defined by builtin dataset. If classes is a
+                string, take it as a file name. The file contains the name of
+                classes where each line contains one class name. If classes is
+                a tuple or list, override the CLASSES defined by the dataset.
+        Return:
+            list[str]: A list of class names.
+        """
+        if classes is None:
+            return cls.CLASSES
+
+        if isinstance(classes, str):
+            # take it as a file path
+            class_names = mmcv.list_from_file(classes)
+        elif isinstance(classes, (tuple, list)):
+            class_names = classes
+        else:
+            raise ValueError(f'Unsupported type {type(classes)} of classes.')
+
+        return class_names
+
+    def _build_default_pipeline(self):
+            """Build the default pipeline for this dataset."""
+            raise NotImplementedError('_build_default_pipeline is not implemented '
+                                    f'for dataset {self.__class__.__name__}')
+
+    def _get_pipeline(self, pipeline):
+        """Get data loading pipeline in self.show/evaluate function.
+
+        Args:
+            pipeline (list[dict]): Input pipeline. If None is given,
+                get from self.pipeline.
+        """
+        if pipeline is None:
+            if not hasattr(self, 'pipeline') or self.pipeline is None:
+                warnings.warn(
+                    'Use default pipeline for data loading, this may cause '
+                    'errors when data is on ceph')
+                return self._build_default_pipeline()
+            loading_pipeline = get_loading_pipeline(self.pipeline.transforms)
+            return Compose(loading_pipeline)
+        return Compose(pipeline)
+
+    def _extract_data(self, index, pipeline, key, load_annos=False):
+        """Load data using input pipeline and extract data according to key.
+
+        Args:
+            index (int): Index for accessing the target data.
+            pipeline (:obj:`Compose`): Composed data loading pipeline.
+            key (str | list[str]): One single or a list of data key.
+            load_annos (bool): Whether to load data annotations.
+                If True, need to set self.test_mode as False before loading.
+
+        Returns:
+            np.ndarray | torch.Tensor | list[np.ndarray | torch.Tensor]:
+                A single or a list of loaded data.
+        """
+        assert pipeline is not None, 'data loading pipeline is not provided'
+        # when we want to load ground-truth via pipeline (e.g. bbox, seg mask)
+        # we need to set self.test_mode as False so that we have 'annos'
+        if load_annos:
+            original_test_mode = self.test_mode
+            self.test_mode = False
+        input_dict = self.get_data_info(index)
+        self.pre_pipeline(input_dict)
+        example = pipeline(input_dict)
+
+        # extract data items according to keys
+        if isinstance(key, str):
+            data = extract_result_dict(example, key)
+        else:
+            data = [extract_result_dict(example, k) for k in key]
+        if load_annos:
+            self.test_mode = original_test_mode
+
+        return data
+
+    def __len__(self):
+        """Return the length of data infos.
+
+        Returns:
+            int: Length of data infos.
+        """
+        return len(self.data_infos)
+
+    def _rand_another(self, idx):
+        """Randomly get another item with the same flag.
+
+        Returns:
+            int: Another index of item with the same flag.
+        """
+        pool = np.where(self.flag == self.flag[idx])[0]
+        return np.random.choice(pool)
+
+    def __getitem__(self, idx):
+        """Get item from infos according to the given index.
+
+        Returns:
+            dict: Data dictionary of the corresponding index.
+        """
+        if self.test_mode:
+            return self.prepare_test_data(idx)
+        while True:
+            data = self.prepare_train_data(idx)
+            if data is None:
+                idx = self._rand_another(idx)
+                continue
+            return data
+
+    def _set_group_flag(self):
+        """Set flag according to image aspect ratio.
+
+        Images with aspect ratio greater than 1 will be set as group 1,
+        otherwise group 0. In 3D datasets, they are all the same, thus are all
+        zeros.
+        """
+        self.flag = np.zeros(len(self), dtype=np.uint8)
+        
+    def multimodal_filter(self, predictions, rgb):
+        dist_th = 8
+        tokens = predictions["results"].keys()
+        filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
+
+        for sample_token in tokens:
+            lidar = predictions["results"][sample_token]
+            rgb = rgb["results"][sample_token]
+
+            filter_lidar = []
+            for name in CLASSES:
+                ld = [d for d in lidar if d["detection_name"] == name]
                 
-                dist_mat = distance_matrix(anchor_center, group_center)
-                dist = np.min(dist_mat, axis=0)
+                if name in filter_classes:
+                    rd = [d for d in rgb if d["detection_name"] == name]
 
-                for box, dst in zip(ld, dist):
-                    if dst < dist_th:
-                        filter_lidar.append(box)
-            else:
-                filter_lidar += list(np.array(ld))
+                    anchor_center = box_center(rd)
+                    group_center = box_center(ld)
 
-        predictions["results"][sample_token] = filter_lidar
+                    if len(anchor_center) == 0 or len(group_center) == 0:
+                        continue 
+                    
+                    dist_mat = distance_matrix(anchor_center, group_center)
+                    dist = np.min(dist_mat, axis=0)
 
-        return predictions
+                    for box, dst in zip(ld, dist):
+                        if dst < dist_th:
+                            filter_lidar.append(box)
+                else:
+                    filter_lidar += list(np.array(ld))
+
+            predictions["results"][sample_token] = filter_lidar
+
+            return predictions
 
     def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
@@ -450,14 +646,12 @@ def multimodal_filter(self, predictions, rgb):
         print('Results writes to', res_path)
         mmcv.dump(nusc_submissions, res_path)
 
-        return res_path, nusc_submissions
+        return res_path
 
     def _evaluate_single(self,
                          result_path,
                          out_path,
-                         logger=None,
-                         metric_type='standard',
-                         result_name='pts_bbox'):
+                         metric_type='standard'):
         """Evaluation for a single model in nuScenes protocol.
 
         Args:
@@ -488,7 +682,7 @@ def multimodal_filter(self, predictions, rgb):
             result_path=result_path,
             eval_set=eval_set_map[self.version],
             output_dir=out_path,
-            metric=metric_type,
+            metric_type=metric_type,
             verbose=False)
         nusc_eval.main(render_curves=False)
         
@@ -560,7 +754,7 @@ def multimodal_filter(self, predictions, rgb):
         detection_dataFrame.to_csv(out_path + "/" + "nus_" + metric_type + ".csv", index=False)
 
         detail = dict()
-        metric_prefix = f'{result_name}_NuScenes'
+        metric_prefix = 'pts_bbox_NuScenes'
         for name in self.CLASSES:
             for k, v in metrics['label_aps'][name].items():
                 val = float('{:.4f}'.format(v))
@@ -622,10 +816,7 @@ def multimodal_filter(self, predictions, rgb):
                     {name: self._format_bbox(results_, tmp_file_, filter)})
         return result_files, tmp_dir
 
-    def evaluate(self,
-                 results,
-                 out_path=None,
-                 **kwargs):
+    def evaluate(self, results, out_path=None, **kwargs):
         """Evaluation in nuScenes protocol.
 
         Args:
@@ -653,7 +844,9 @@ def multimodal_filter(self, predictions, rgb):
 
         metric_type = kwargs.get("metric_type", None)
         filter = kwargs.get("filter", None)
-
+        predictions = kwargs.get("predictions", None)
+        ground_truth = kwargs.get("ground_truth", None)
+        
         result_files, tmp_dir = self.format_results(results, out_path, filter)
 
         if isinstance(result_files, dict):
@@ -807,3 +1000,5 @@ def lidar_nusc_box_to_global(info,
         box.translate(np.array(info['ego2global_translation']))
         box_list.append(box)
     return box_list
+
+
