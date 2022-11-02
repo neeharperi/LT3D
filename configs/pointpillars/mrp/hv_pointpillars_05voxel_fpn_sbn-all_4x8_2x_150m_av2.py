@@ -18,22 +18,21 @@ input_modality = dict(
     use_map=False,
     use_external=False)
 
-
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.25, 0.25, 6]
-point_cloud_range = [-100, -100, -3, 100, 100, 3]
+voxel_size = [0.5, 0.5, 6]
+point_cloud_range = [-150, -150, -3, 150, 150, 3]
 
 file_client_args = dict(backend='disk')
 # For AV2 we usually do 26-class detection
-class_names = [
+CLASS_NAMES = [
     'REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER',
     'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 'MOBILE_PEDESTRIAN_CROSSING_SIGN',
     'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS',
     'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG'
 ]
 
-total_class_names = class_names
+TOTAL_CLASS_NAMES = CLASS_NAMES
 
 TASK_NAMES = {"STANDARD": ['REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER', 'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 
                             'MOBILE_PEDESTRIAN_CROSSING_SIGN', 'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS', 'MESSAGE_BOARD_TRAILER', 
@@ -61,7 +60,7 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 model = dict(
     type='MVXFasterRCNN',
     pts_voxel_layer=dict(
-        max_num_points=64,
+        max_num_points=32,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
         max_voxels=(30000, 40000)),
@@ -76,7 +75,7 @@ model = dict(
         point_cloud_range=point_cloud_range,
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=[400, 400]),
+        type='PointPillarsScatter', in_channels=64, output_shape=[800, 800]), #
     pts_backbone=dict(
         type='SECOND',
         in_channels=64,
@@ -94,7 +93,7 @@ model = dict(
         num_outs=3),
     pts_bbox_head=dict(
         type='Anchor3DHead',
-        num_classes=len(total_class_names),
+        num_classes=len(TOTAL_CLASS_NAMES),
         in_channels=256,
         feat_channels=256,
         use_direction_classifier=True,
@@ -198,7 +197,7 @@ prepare=dict(
         STROLLER=5,
         DOG=5,
         )),
-classes=class_names,
+classes=CLASS_NAMES,
 sample_groups=dict(
     REGULAR_VEHICLE=2,
     PEDESTRIAN=2,
@@ -267,9 +266,9 @@ train_pipeline = [
     dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=class_names),
+    dict(type='ObjectNameFilter', classes=CLASS_NAMES),
     dict(type='PointShuffle'),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
+    dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
 ]
 test_pipeline = [
@@ -309,7 +308,7 @@ test_pipeline = [
                 type='PointsRangeFilter', point_cloud_range=point_cloud_range),
             dict(
                 type='DefaultFormatBundle3D',
-                class_names=class_names,
+                class_names=CLASS_NAMES,
                 with_label=False),
             dict(type='Collect3D', keys=['points'])
         ])
@@ -339,7 +338,7 @@ eval_pipeline = [
         file_client_args=file_client_args),
     dict(
         type='DefaultFormatBundle3D',
-        class_names=class_names,
+        class_names=CLASS_NAMES,
         with_label=False),
     dict(type='Collect3D', keys=['points'])
 ]
@@ -348,11 +347,21 @@ data = dict(
     samples_per_gpu=1,
     workers_per_gpu=0,
     train=dict(
-        type=dataset_type,
+        type='CBGSDataset',
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_root,
+            ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
+            pipeline=train_pipeline,
+            classes=CLASS_NAMES,
+            test_mode=False,
+            # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+            # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+            box_type_3d='LiDAR'),
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
@@ -363,7 +372,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'),
@@ -372,7 +381,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'))
@@ -396,7 +405,6 @@ lr_config = dict(
 momentum_config = None
 # runtime settings
 runner = dict(type='EpochBasedRunner', max_epochs=24)
-
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0

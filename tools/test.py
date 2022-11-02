@@ -284,8 +284,9 @@ def main():
             if args.predictions is not None:
                 out_path = "/".join(args.predictions.split("/")[:-1])
             
-            export_timings(model, out_path + "/timing.csv")
-
+            if args.out is not None: 
+                export_timings(model, out_path + "/timing.csv")
+            
             print(dataset.evaluate(outputs, out_path, **eval_kwargs))
 
 

@@ -54,6 +54,7 @@ class PointPillarsScatter(nn.Module):
         indices = indices.long()
         voxels = voxel_features.t()
         # Now scatter the blob back to the canvas.
+
         canvas[:, indices] = voxels
         # Undo the column stacking to final 4-dim tensor
         canvas = canvas.view(1, self.in_channels, self.ny, self.nx)

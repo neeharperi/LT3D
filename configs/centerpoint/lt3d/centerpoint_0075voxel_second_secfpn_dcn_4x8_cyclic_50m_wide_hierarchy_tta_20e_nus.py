@@ -24,8 +24,8 @@ wide=512
 use_sampler = True
 sampler_type = "standard"
 
-voxel_size = [0.2, 0.2, 8]
-point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+voxel_size = [0.075, 0.075, 0.2]
+point_cloud_range = [-54, -54, -5.0, 54, 54, 3.0]
 sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 grid_size = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2])]
 
@@ -57,9 +57,9 @@ class_mapping = {"standard": [['car'], ['truck'], ['trailer'], ['bus'], ['constr
                  }
 
 nms = ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", 
-       "W", "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
+       "W", "W", "W", "W", "W", "W", "W", "W", "X", "X", "X", "X"]
 #nms = ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", 
-#       "A", "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
+#       "A", "A", "A", "A", "A", "A", "A", "A", "X", "X", "X", "X"]
 
 hierarchical_softmax = [['car', 'vehicle', 'object'], ['truck', 'vehicle', 'object'], ['trailer', 'vehicle', 'object'], ['bus', 'vehicle', 'object'], ['construction_vehicle', 'vehicle', 'object'], ['bicycle', 'vehicle', 'object'], ['motorcycle', 'vehicle', 'object'], ['emergency_vehicle', 'vehicle', 'object'], 
                         ['adult', 'pedestrian', 'object'], ['child', 'pedestrian', 'object'], ['police_officer', 'pedestrian', 'object'], ['construction_worker', 'pedestrian', 'object'], ['stroller', 'pedestrian', 'object'], ['personal_mobility', 'pedestrian', 'object'], 
@@ -73,47 +73,46 @@ hierarchy = {"TRAIN" : False,
 
 model = dict(
     type='CenterPoint',
-    pts_voxel_layer=dict(
-        max_num_points=20, voxel_size=voxel_size, max_voxels=(30000, 40000), point_cloud_range=point_cloud_range),
-    pts_voxel_encoder=dict(
-        type='PillarFeatureNet',
-        in_channels=5,
-        feat_channels=[64],
-        with_distance=False,
-        voxel_size=voxel_size,
-        point_cloud_range=point_cloud_range,
-        norm_cfg=dict(type='BN1d', eps=1e-3, momentum=0.01),
-        legacy=False),
+    pts_voxel_layer=dict(max_num_points=10, voxel_size=voxel_size, max_voxels=(90000, 120000), point_cloud_range=point_cloud_range),
+    pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=5),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=(512, 512)),
+        type='SparseEncoder',
+        in_channels=5,
+        sparse_shape=sparse_shape,
+        output_channels=128,
+        order=('conv', 'norm', 'act'),
+        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128,
+                                                                      128)),
+        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+        block_type='basicblock'),
     pts_backbone=dict(
         type='SECOND',
-        in_channels=64,
-        out_channels=[64, 128, 256],
-        layer_nums=[3, 5, 5],
-        layer_strides=[2, 2, 2],
+        in_channels=256,
+        out_channels=[128, 256],
+        layer_nums=[5, 5],
+        layer_strides=[1, 2],
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         conv_cfg=dict(type='Conv2d', bias=False)),
     pts_neck=dict(
         type='SECONDFPN',
-        in_channels=[64, 128, 256],
-        out_channels=[128, 128, 128],
-        upsample_strides=[0.5, 1, 2],
+        in_channels=[128, 256],
+        out_channels=[256, 256],
+        upsample_strides=[1, 2],
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         upsample_cfg=dict(type='deconv', bias=False),
         use_conv_for_no_stride=True),
     pts_bbox_head=dict(
         type='CenterHead',
-        in_channels=sum([128, 128, 128]),
+        in_channels=sum([256, 256]),
         tasks=[dict(num_class=22, class_names=total_class_names)],
         common_heads=dict(reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
         share_conv_channel=wide,
         bbox_coder=dict(
             type='CenterPointBBoxCoder',
             post_center_range=point_cloud_range,
-            max_num=4096,
+            max_num=16384,
             score_threshold=0.01,
-            out_size_factor=4,
+            out_size_factor=8,
             voxel_size=voxel_size[:2],
             pc_range=point_cloud_range[:2],
             code_size=9),
@@ -138,7 +137,7 @@ model = dict(
             grid_size=grid_size,
             voxel_size=voxel_size,
             point_cloud_range=point_cloud_range,
-            out_size_factor=4,
+            out_size_factor=8,
             dense_reg=1,
             gaussian_overlap=0.1,
             max_objs=500,
@@ -155,7 +154,7 @@ model = dict(
             max_pool_nms=False,
             min_radius=[4, 12, 10, 1, 0.85, 0.175],
             score_threshold=0.01,
-            out_size_factor=4,
+            out_size_factor=8,
             nms_type='rotate',
             use_rotate_nms=True,
             max_num=500,
@@ -338,7 +337,17 @@ data = dict(
     samples_per_gpu=1,
     workers_per_gpu=0,
     train=dict(
-        type=dataset_type,
+        type='CBGSDataset' if use_sampler else dataset_type,
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_root,
+            ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+            pipeline=train_pipeline,
+            classes=CLASS_NAMES,
+            test_mode=False,
+            # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+            # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+            box_type_3d='LiDAR'),
         data_root=data_root,
         ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,

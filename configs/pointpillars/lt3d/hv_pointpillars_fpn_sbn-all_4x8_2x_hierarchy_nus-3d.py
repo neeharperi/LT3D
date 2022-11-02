@@ -17,20 +17,21 @@ input_modality = dict(
     use_radar=False,
     use_map=False,
     use_external=False)
-file_client_args = dict(backend='disk')
 
+use_sampler = True
 sampler_type = "standard"
 
-voxel_size = [0.5, 0.5, 8]
+voxel_size = [0.25, 0.25, 8]
 point_cloud_range = [-50, -50, -5, 50, 50, 3]
-# For nuScenes we usually do 18-class detection
+
+file_client_args = dict(backend='disk')
 class_names = [
 'car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle',
 'adult', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 
 'pushable_pullable', 'debris', 'traffic_cone', 'barrier'
 ]
 
-total_class_names = class_names
+total_class_names = class_names + ["vehicle", "pedestrian", "movable", "object"]
 
 task_names = {"standard": ['car', 'truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle',
                             'adult', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 
@@ -203,7 +204,17 @@ data = dict(
     samples_per_gpu=1,
     workers_per_gpu=0,
     train=dict(
-        type=dataset_type,
+        type='CBGSDataset' if use_sampler else dataset_type,
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_root,
+            ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+            pipeline=train_pipeline,
+            classes=CLASS_NAMES,
+            test_mode=False,
+            # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+            # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+            box_type_3d='LiDAR'),
         data_root=data_root,
         ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,

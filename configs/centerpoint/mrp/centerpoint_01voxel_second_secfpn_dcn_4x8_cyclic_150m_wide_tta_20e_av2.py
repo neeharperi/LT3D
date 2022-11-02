@@ -22,7 +22,7 @@ WIDE_DIM=512
 
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.2, 0.2, 0.2]
+voxel_size = [0.1, 0.1, 0.2]
 point_cloud_range = [-152, -152, -3, 152, 152, 3]
 sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 grid_size = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2])]
@@ -319,7 +319,17 @@ data = dict(
     samples_per_gpu=1,
     workers_per_gpu=4,
     train=dict(
-        type=dataset_type,
+        type='CBGSDataset',
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_root,
+            ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
+            pipeline=train_pipeline,
+            classes=CLASS_NAMES,
+            test_mode=False,
+            # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+            # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+            box_type_3d='LiDAR'),
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,
