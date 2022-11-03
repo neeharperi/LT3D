@@ -20,7 +20,7 @@ input_modality = dict(
 WIDE = True
 WIDE_DIM=512
 
-USE_SAMPLER = True
+USE_SAMPLER = False
 SAMPLER_TYPE = "STANDARD"
 
 voxel_size = [0.075, 0.075, 0.2]
@@ -375,11 +375,9 @@ test_pipeline = [
         ])
 ]
 
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=0,
-    train=dict(
-        type='CBGSDataset' if USE_SAMPLER else dataset_type,
+if USE_SAMPLER:
+    train_data=dict(
+        type='CBGSDataset',
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
@@ -401,7 +399,27 @@ data = dict(
         box_type_3d='LiDAR',
         sampler_type=SAMPLER_TYPE,
         task_names=TASK_NAMES,
+        class_mapping=CLASS_MAPPING)
+else:
+    train_data=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
+        pipeline=train_pipeline,
+        classes=CLASS_NAMES,
+        modality=input_modality,
+        test_mode=False,
+        # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+        # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+        box_type_3d='LiDAR',
+        sampler_type=SAMPLER_TYPE,
+        task_names=TASK_NAMES,
         class_mapping=CLASS_MAPPING),
+
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=train_data,
     val=dict(
         type=dataset_type,
         data_root=data_root,

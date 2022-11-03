@@ -60,7 +60,7 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 model = dict(
     type='MVXFasterRCNN',
     pts_voxel_layer=dict(
-        max_num_points=32,
+        max_num_points=64,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
         max_voxels=(30000, 40000)),
@@ -345,7 +345,7 @@ eval_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=0,
+    workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',
         dataset=dict(

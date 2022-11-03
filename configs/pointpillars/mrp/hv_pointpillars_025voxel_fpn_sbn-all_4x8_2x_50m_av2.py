@@ -345,7 +345,7 @@ eval_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=0,
+    workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',
         dataset=dict(
@@ -405,7 +405,7 @@ lr_config = dict(
 momentum_config = None
 # runtime settings
 runner = dict(type='EpochBasedRunner', max_epochs=24)
-
+fp16 = dict(loss_scale=32.)
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0

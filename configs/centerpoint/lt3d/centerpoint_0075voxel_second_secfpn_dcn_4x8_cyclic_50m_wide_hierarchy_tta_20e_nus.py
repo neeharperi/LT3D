@@ -333,23 +333,21 @@ test_pipeline = [
         ])
 ]
 
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=0,
-    train=dict(
-        type='CBGSDataset' if use_sampler else dataset_type,
+if use_sampler:
+    train_data=dict(
+        type='CBGSDataset',
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+            ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
             pipeline=train_pipeline,
-            classes=CLASS_NAMES,
+            classes=class_names,
             test_mode=False,
             # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
             # and box_type_3d='Depth' in sunrgbd and scannet dataset.
             box_type_3d='LiDAR'),
         data_root=data_root,
-        ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
         pipeline=train_pipeline,
         classes=class_names,
         modality=input_modality,
@@ -359,7 +357,27 @@ data = dict(
         box_type_3d='LiDAR',
         sampler_type=sampler_type,
         task_names=task_names,
+        class_mapping=class_mapping)
+else:
+    train_data=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
+        pipeline=train_pipeline,
+        classes=CLASS_NAMES,
+        modality=input_modality,
+        test_mode=False,
+        # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+        # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+        box_type_3d='LiDAR',
+        sampler_type=sampler_type,
+        task_names=task_names,
         class_mapping=class_mapping),
+    
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=train_data,
     val=dict(
         type=dataset_type,
         data_root=data_root,

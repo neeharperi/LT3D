@@ -236,42 +236,80 @@ points_loader=dict(
     use_color=False,
     file_client_args=file_client_args))
 
-train_pipeline = [
-    dict(
-        type='LoadPointsFromFileFeather',
-        coord_type='LIDAR',
-        load_dim=6,
-        use_dim=[0, 1, 2, 3, 4, 5],
-        shift_height=False,
-        use_color=False,
-        file_client_args=file_client_args),
-    dict(
-        type='LoadPointsFromMultiSweepsFeather',
-        coord_type="LIDAR",
-        sweeps_num=5,
-        load_dim=6,
-        use_dim=[0, 1, 2, 3, 4, 5],
-        pad_empty_sweeps=True,
-        remove_close=True,
-        test_mode=False,
-        shift_height=False,
-        use_color=False,
-        file_client_args=file_client_args),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectSample', db_sampler=db_sampler),
-    dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.3925, 0.3925],
-        scale_ratio_range=[0.95, 1.05],
-        translation_std=[0, 0, 0]),
-    dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='PointShuffle'),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
-]
+if USE_SAMPLER:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFileFeather',
+            coord_type='LIDAR',
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweepsFeather',
+            coord_type="LIDAR",
+            sweeps_num=5,
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            pad_empty_sweeps=True,
+            remove_close=True,
+            test_mode=False,
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(type='ObjectSample', db_sampler=db_sampler),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+else:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFileFeather',
+            coord_type='LIDAR',
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweepsFeather',
+            coord_type="LIDAR",
+            sweeps_num=5,
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            pad_empty_sweeps=True,
+            remove_close=True,
+            test_mode=False,
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+
 test_pipeline = [
     dict(
         type='LoadPointsFromFileFeather',
@@ -344,11 +382,9 @@ eval_pipeline = [
     dict(type='Collect3D', keys=['points'])
 ]
 
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=0,
-    train=dict(
-        type='CBGSDataset' if use_sampler else dataset_type,
+if USE_SAMPLER:
+    train_data=dict(
+        type='CBGSDataset',
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
@@ -362,12 +398,35 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
-        box_type_3d='LiDAR'),
+        box_type_3d='LiDAR',
+        sampler_type=SAMPLER_TYPE,
+        task_names=TASK_NAMES,
+        class_mapping=CLASS_MAPPING)
+else:
+    train_data=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
+        pipeline=train_pipeline,
+        classes=CLASS_NAMES,
+        modality=input_modality,
+        test_mode=False,
+        # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+        # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+        box_type_3d='LiDAR',
+        sampler_type=SAMPLER_TYPE,
+        task_names=TASK_NAMES,
+        class_mapping=CLASS_MAPPING),
+
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=train_data,
     val=dict(
         type=dataset_type,
         data_root=data_root,

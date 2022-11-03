@@ -60,7 +60,7 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 model = dict(
     type='MVXFasterRCNN',
     pts_voxel_layer=dict(
-        max_num_points=32,
+        max_num_points=64,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
         max_voxels=(30000, 40000)),
@@ -75,7 +75,7 @@ model = dict(
         point_cloud_range=point_cloud_range,
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=[800, 800]), #
+        type='PointPillarsScatter', in_channels=64, output_shape=[400, 400]), #
     pts_backbone=dict(
         type='SECOND',
         in_channels=64,
@@ -345,7 +345,7 @@ eval_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=0,
+    workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',
         dataset=dict(
@@ -405,6 +405,7 @@ lr_config = dict(
 momentum_config = None
 # runtime settings
 runner = dict(type='EpochBasedRunner', max_epochs=24)
+
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0

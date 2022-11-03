@@ -60,14 +60,14 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 model = dict(
     type='MVXFasterRCNN',
     pts_voxel_layer=dict(
-        max_num_points=8,
+        max_num_points=64,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
         max_voxels=(30000, 40000)),
     pts_voxel_encoder=dict(
         type='HardVFE',
         in_channels=6,
-        feat_channels=[32, 32],
+        feat_channels=[64, 64],
         with_distance=False,
         voxel_size=voxel_size,
         with_cluster_center=True,
@@ -75,27 +75,27 @@ model = dict(
         point_cloud_range=point_cloud_range,
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=32, output_shape=[1600, 1600]), #
+        type='PointPillarsScatter', in_channels=64, output_shape=[800, 800]), #
     pts_backbone=dict(
         type='SECOND',
-        in_channels=32,
+        in_channels=64,
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
         layer_nums=[3, 5, 5],
         layer_strides=[2, 2, 2],
-        out_channels=[32, 64, 128]),
+        out_channels=[64, 128, 256]),
     pts_neck=dict(
         type='FPN',
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
         act_cfg=dict(type='ReLU'),
-        in_channels=[32, 64, 128],
-        out_channels=64,
+        in_channels=[64, 128, 256],
+        out_channels=256,
         start_level=0,
         num_outs=3),
     pts_bbox_head=dict(
         type='Anchor3DHead',
         num_classes=len(TOTAL_CLASS_NAMES),
-        in_channels=64,
-        feat_channels=64,
+        in_channels=256,
+        feat_channels=256,
         use_direction_classifier=True,
         anchor_generator=dict(
             type='AlignedAnchor3DRangeGenerator',
@@ -345,7 +345,7 @@ eval_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=0,
+    workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',
         dataset=dict(

@@ -120,34 +120,62 @@ sample_groups=dict(
         load_dim=5,
         use_dim=[0, 1, 2, 3],
         file_client_args=file_client_args))
-        
-train_pipeline = [
-    dict(
-        type='LoadPointsFromFile',
-        coord_type='LIDAR',
-        load_dim=5,
-        use_dim=5,
-        file_client_args=file_client_args),
-    dict(
-        type='LoadPointsFromMultiSweeps',
-        sweeps_num=9,
-        file_client_args=file_client_args),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='ObjectSample', db_sampler=db_sampler),
-    dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.3925, 0.3925],
-        scale_ratio_range=[0.95, 1.05],
-        translation_std=[0, 0, 0]),
-    dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='PointShuffle'),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
-]
+
+if use_sampler: 
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=5,
+            use_dim=5,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweeps',
+            sweeps_num=9,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectSample', db_sampler=db_sampler),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+else:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFile',
+            coord_type='LIDAR',
+            load_dim=5,
+            use_dim=5,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweeps',
+            sweeps_num=9,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+
 test_pipeline = [
     dict(
         type='LoadPointsFromFile',
@@ -200,30 +228,51 @@ eval_pipeline = [
     dict(type='Collect3D', keys=['points'])
 ]
 
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=0,
-    train=dict(
-        type='CBGSDataset' if use_sampler else dataset_type,
+if use_sampler:
+    train_data=dict(
+        type='CBGSDataset',
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+            ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
             pipeline=train_pipeline,
-            classes=CLASS_NAMES,
+            classes=class_names,
             test_mode=False,
             # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
             # and box_type_3d='Depth' in sunrgbd and scannet dataset.
             box_type_3d='LiDAR'),
         data_root=data_root,
-        ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
+        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
         pipeline=train_pipeline,
         classes=class_names,
         modality=input_modality,
         test_mode=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
-        box_type_3d='LiDAR'),
+        box_type_3d='LiDAR',
+        sampler_type=sampler_type,
+        task_names=task_names,
+        class_mapping=class_mapping)
+else:
+    train_data=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
+        pipeline=train_pipeline,
+        classes=CLASS_NAMES,
+        modality=input_modality,
+        test_mode=False,
+        # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+        # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+        box_type_3d='LiDAR',
+        sampler_type=sampler_type,
+        task_names=task_names,
+        class_mapping=class_mapping),
+    
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=train_data,
     val=dict(
         type=dataset_type,
         data_root=data_root,
