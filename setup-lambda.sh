@@ -4,8 +4,8 @@ export PYTHONPATH="${PYTHONPATH}:/home/ubuntu/Workspace/Core/nuscenes-lt3d/pytho
 export PYTHONPATH="${PYTHONPATH}:/home/ubuntu/Workspace/Core/av2-lt3d/src"
 
 export PATH=/usr/lib/cuda/bin:$PATH
-export CUDA_ROOT=/usr/lib/cuda
-export CUDA_HOME=/usr/lib/cuda
+export CUDA_ROOT=/usr
+export CUDA_HOME=/usr
 export LD_LIBRARY_PATH=/usr/lib/cuda/lib64:$LD_LIBRARY_PATH
 
 wget https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh
