@@ -20,8 +20,9 @@ input_modality = dict(
 
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.75, 0.75, 6]
+voxel_size = [0.125, 0.125, 6]
 point_cloud_range = [-150, -150, -3, 150, 150, 3]
+output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 
 file_client_args = dict(backend='disk')
 # For AV2 we usually do 26-class detection
@@ -75,7 +76,7 @@ model = dict(
         point_cloud_range=point_cloud_range,
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=[400, 400]), #
+        type='PointPillarsScatter', in_channels=64, output_shape=output_shape), #
     pts_backbone=dict(
         type='SECOND',
         in_channels=64,

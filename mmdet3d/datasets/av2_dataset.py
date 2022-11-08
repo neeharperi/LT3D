@@ -666,7 +666,7 @@ class AV2Dataset(Dataset):
                 rgbPredictionsDataFrame = pd.read_csv(filter)
                 predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
-        max_range = 150
+        range_list = [(0, 50), (50, 100), (100, 150), (0, 150)]
         user = os.getlogin()
 
         if user == "nperi":
@@ -674,16 +674,17 @@ class AV2Dataset(Dataset):
         elif user == "ubuntu":
             data_root = "/home/ubuntu/Workspace/Data/Sensor/"
 
-        cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
+        for min_range, max_range in range_list:
+            cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), min_range_m=min_range, max_range_m=max_range)
 
-        _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
-    
-        print(metrics)
-        if out_path is not None:
-            filter_tag = "_filter" if filter is not None else ""
-            max_range_tag = "_{}m".format(max_range)
-            metric_tag = "_{}".format(metric_type)
+            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
+        
+            print(metrics)
+            if out_path is not None:
+                filter_tag = "_filter" if filter is not None else ""
+                range_tag = "_{}m-{}m".format(min_range, max_range)
+                metric_tag = "_{}".format(metric_type)
 
-            pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, max_range_tag, metric_tag))
+                pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, range_tag, metric_tag))
 
         return metrics.to_json()
