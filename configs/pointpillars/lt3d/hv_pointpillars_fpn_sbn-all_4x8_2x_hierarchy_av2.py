@@ -27,14 +27,14 @@ output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / v
 
 file_client_args = dict(backend='disk')
 # For AV2 we usually do 26-class detection
-class_names = [
+CLASS_NAMES = [
     'REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER',
     'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 'MOBILE_PEDESTRIAN_CROSSING_SIGN',
     'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS',
     'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG'
 ]
 
-total_class_names = class_names + ["VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
+TOTAL_CLASS_NAMES = CLASS_NAMES + ["VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
 
 TASK_NAMES = {"STANDARD": ['REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER', 'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 
                             'MOBILE_PEDESTRIAN_CROSSING_SIGN', 'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS', 'MESSAGE_BOARD_TRAILER', 
@@ -65,7 +65,8 @@ model = dict(
         max_num_points=64,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
-        max_voxels=(30000, 40000)),
+        max_voxels=(30000, 40000),
+        deterministic=False),
     pts_voxel_encoder=dict(
         type='HardVFE',
         in_channels=6,
@@ -348,7 +349,7 @@ test_pipeline = [
                 type='PointsRangeFilter', point_cloud_range=point_cloud_range),
             dict(
                 type='DefaultFormatBundle3D',
-                class_names=class_names,
+                class_names=CLASS_NAMES,
                 with_label=False),
             dict(type='Collect3D', keys=['points'])
         ])
@@ -378,7 +379,7 @@ eval_pipeline = [
         file_client_args=file_client_args),
     dict(
         type='DefaultFormatBundle3D',
-        class_names=class_names,
+        class_names=CLASS_NAMES,
         with_label=False),
     dict(type='Collect3D', keys=['points'])
 ]
@@ -433,7 +434,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'),

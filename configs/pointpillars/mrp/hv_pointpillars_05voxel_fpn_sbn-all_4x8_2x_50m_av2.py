@@ -64,7 +64,8 @@ model = dict(
         max_num_points=64,
         point_cloud_range=point_cloud_range,
         voxel_size=voxel_size,
-        max_voxels=(30000, 40000)),
+        max_voxels=(30000, 40000),
+        deterministic=False),
     pts_voxel_encoder=dict(
         type='HardVFE',
         in_channels=6,
@@ -345,7 +346,7 @@ eval_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
+    samples_per_gpu=4,
     workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',

@@ -5,7 +5,6 @@ from torch import nn
 
 from ..builder import MIDDLE_ENCODERS
 
-
 @MIDDLE_ENCODERS.register_module()
 class PointPillarsScatter(nn.Module):
     """Point Pillar's Scatter.

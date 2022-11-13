@@ -6,6 +6,7 @@ from torch.nn import functional as F
 from ..builder import DETECTORS
 from .mvx_two_stage import MVXTwoStageDetector
 
+from nntime import time_this
 
 @DETECTORS.register_module()
 class MVXFasterRCNN(MVXTwoStageDetector):
@@ -22,6 +23,7 @@ class DynamicMVXFasterRCNN(MVXTwoStageDetector):
     def __init__(self, **kwargs):
         super(DynamicMVXFasterRCNN, self).__init__(**kwargs)
 
+    @time_this()
     @torch.no_grad()
     @force_fp32()
     def voxelize(self, points):
@@ -46,6 +48,7 @@ class DynamicMVXFasterRCNN(MVXTwoStageDetector):
         coors_batch = torch.cat(coors_batch, dim=0)
         return points, coors_batch
 
+    @time_this()
     def extract_pts_feat(self, points, img_feats, img_metas):
         """Extract point features."""
         if not self.with_pts_bbox:

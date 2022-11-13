@@ -98,10 +98,10 @@ def av2_data_prep(root_path,
             Default: 5
     """
     av2_converter.create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=max_sweeps)
-    #info_train_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_train.pkl')
-    #info_val_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_val.pkl')
-    #av2_converter.export_2d_annotation(f'{root_path}/train', info_train_path)
-    #av2_converter.export_2d_annotation(f'{root_path}/val', info_val_path)
+    info_train_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_train.pkl')
+    info_val_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_val.pkl')
+    av2_converter.export_2d_annotation(f'{root_path}/train', info_train_path)
+    av2_converter.export_2d_annotation(f'{root_path}/val', info_val_path)
     create_groundtruth_database(dataset_name, root_path, out_dir, info_prefix, f'{out_dir}/{info_prefix}_infos_train.pkl')
 
 def lyft_data_prep(root_path, info_prefix, version, max_sweeps=10):

@@ -77,7 +77,7 @@ HIERARCHY = {"TRAIN" : False,
 
 model = dict(
     type='CenterPoint',
-    pts_voxel_layer=dict(max_num_points=10, voxel_size=voxel_size, max_voxels=(90000, 120000), point_cloud_range=point_cloud_range),
+    pts_voxel_layer=dict(max_num_points=10, voxel_size=voxel_size, max_voxels=(90000, 120000), point_cloud_range=point_cloud_range, deterministic=False),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=6),
     pts_middle_encoder=dict(
         type='SparseEncoder',

@@ -11,7 +11,6 @@ from mmdet.core import (build_assigner, build_bbox_coder,
 from ..builder import HEADS, build_loss
 from .train_mixins import AnchorTrainMixin
 
-
 @HEADS.register_module()
 class Anchor3DHead(BaseModule, AnchorTrainMixin):
     """Anchor head for SECOND/PointPillars/MVXNet/PartA2.

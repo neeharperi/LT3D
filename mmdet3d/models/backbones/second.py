@@ -7,7 +7,6 @@ from torch import nn as nn
 
 from ..builder import BACKBONES
 
-
 @BACKBONES.register_module()
 class SECOND(BaseModule):
     """Backbone network for SECOND/PointPillars/PartA2/MVXNet.
