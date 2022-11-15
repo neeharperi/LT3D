@@ -6,9 +6,9 @@ from tqdm import tqdm
 
 
 model = "pointpillars"
-near_far = False 
+near_far = True 
 ranges = [(0, 50), (50, 100), (100, 150)]
-sample_rate = [1, 2, 2]
+sample_rate = [2, 2, 2]
 
 print(model, near_far)
 
@@ -151,8 +151,9 @@ for dets, dist, rate in zip(detections, ranges, sample_rate):
                     time_delta = 1e-9*(timestamp - last_timestamp)
                 else:
                     time_delta = 0
+                    last_timestamp = timestamp
 
-                for pred in pred_sequence[log_id][timestamp]:
+                for pred in pred_sequence[log_id][last_timestamp]:
                     l2 = np.linalg.norm([pred['tx_m'] + time_delta * pred['vx'], pred['ty_m'] + time_delta * pred['vy']])
                     if l2 > min_dist and l2 <= max_dist:
                         predictions['tx_m'].append(pred['tx_m'] + time_delta * pred['vx'])
