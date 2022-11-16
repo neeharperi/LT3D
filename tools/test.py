@@ -248,6 +248,8 @@ def main():
     if rank == 0:
         
         if args.out:
+            out_path = "/".join(args.out.split("/")[:-1])
+            os.makedirs(out_path, exist_ok=True)
             print(f'\nwriting results to {args.out}')
             mmcv.dump(outputs, args.out)
         if args.cached:
