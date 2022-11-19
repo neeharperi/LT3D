@@ -187,6 +187,14 @@ class NuScenesDataset(Dataset):
         self.eval_version = eval_version
         self.use_valid_flag = use_valid_flag
         
+        if self.modality is None:
+            self.modality = dict(
+                use_lidar=True,
+                use_camera=False,
+                use_radar=False,
+                use_map=False,
+                use_external=False)
+            
         self.CLASSES = self.get_classes(classes)
         self.file_client = mmcv.FileClient(**file_client_args)
         self.cat2id = {name: i for i, name in enumerate(self.CLASSES)}
