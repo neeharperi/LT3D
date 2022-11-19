@@ -148,7 +148,7 @@ for dets, dist, rate in zip(detections, ranges, sample_rate):
                     predictions['timestamp_ns'].append(pred['timestamp_ns'])
             else:
                 if near_far is True:
-                    time_delta = 1e-9*(timestamp - last_timestamp)
+                    time_delta = 1e-9 * (timestamp - last_timestamp)
                 else:
                     time_delta = 0
                     last_timestamp = timestamp
@@ -176,7 +176,7 @@ for dets, dist, rate in zip(detections, ranges, sample_rate):
                         predictions['score'].append(pred['score'])
 
                         predictions['log_id'].append(pred['log_id'])
-                        predictions['timestamp_ns'].append(pred['timestamp_ns'])
+                        predictions['timestamp_ns'].append(timestamp)
 
 predictionsDataFrame = pd.DataFrame.from_dict(predictions)
 
