@@ -326,7 +326,7 @@ if use_sampler:
         dataset=dict(
             type=dataset_type,
             data_root=data_root,
-            ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
+            ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
             pipeline=train_pipeline,
             classes=class_names,
             test_mode=False,
@@ -334,7 +334,7 @@ if use_sampler:
             # and box_type_3d='Depth' in sunrgbd and scannet dataset.
             box_type_3d='LiDAR'),
         data_root=data_root,
-        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
+        ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,
         classes=class_names,
         modality=input_modality,
@@ -349,7 +349,7 @@ else:
     train_data=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file=data_root + '{}/nuscenes_infos_val.pkl'.format(VERSION),
+        ann_file=data_root + '{}/nuscenes_infos_train.pkl'.format(VERSION),
         pipeline=train_pipeline,
         classes=CLASS_NAMES,
         modality=input_modality,

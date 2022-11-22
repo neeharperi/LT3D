@@ -108,8 +108,7 @@ model = dict(
     pts_bbox_head=dict(
         type='CenterHead',
         in_channels=sum([256, 256]),
-        tasks=[dict(num_class=30, class_names=TOTAL_CLASS_NAMES),
-              ],
+        tasks=[dict(num_class=len(TOTAL_CLASS_NAMES), class_names=TOTAL_CLASS_NAMES)],
         common_heads=dict(reg=(2, 2), height=(1, 2), dim=(3, 2), rot=(2, 2), vel=(2, 2)),
         share_conv_channel=WIDE_DIM,
         bbox_coder=dict(
