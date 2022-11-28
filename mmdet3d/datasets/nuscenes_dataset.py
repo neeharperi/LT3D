@@ -7,6 +7,7 @@ import numpy as np
 import pyquaternion
 from nuscenes.utils.data_classes import Box as NuScenesBox
 from nuscenes.eval.detection.constants import DETECTION_NAMES
+from nuscenes import NuScenes
 
 from torch.utils.data import Dataset
 from ..core import show_result
@@ -684,6 +685,7 @@ class NuScenesDataset(Dataset):
             'v1.0-mini': 'mini_val',
             'v1.0-trainval': 'val',
         }
+
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,

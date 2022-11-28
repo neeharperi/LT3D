@@ -335,6 +335,7 @@ class NuScenesMonoDataset(CocoDataset):
         else:
             return NuScenesMonoDataset.DefaultAttribute[label_name]
 
+
     def _format_bbox(self, results, jsonfile_prefix=None):
         """Convert the results to the standard format.
 
@@ -471,6 +472,7 @@ class NuScenesMonoDataset(CocoDataset):
             'v1.0-mini': 'mini_val',
             'v1.0-trainval': 'val',
         }
+                
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,
