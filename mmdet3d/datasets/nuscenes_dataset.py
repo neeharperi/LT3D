@@ -1,5 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import tempfile
+import warnings
+import json
 from os import path as osp
 
 import mmcv
@@ -12,6 +14,7 @@ from nuscenes import NuScenes
 from torch.utils.data import Dataset
 from ..core import show_result
 from ..core.bbox import Box3DMode, Coord3DMode, LiDARInstance3DBoxes, get_box_type
+from .utils import extract_result_dict
 from .builder import DATASETS
 from .custom_3d import Custom3DDataset
 from .pipelines import Compose
@@ -692,7 +695,7 @@ class NuScenesDataset(Dataset):
             result_path=result_path,
             eval_set=eval_set_map[self.version],
             output_dir=out_path,
-            metric_type=metric_type,
+            metric=metric_type,
             verbose=False)
         nusc_eval.main(render_curves=False)
         
