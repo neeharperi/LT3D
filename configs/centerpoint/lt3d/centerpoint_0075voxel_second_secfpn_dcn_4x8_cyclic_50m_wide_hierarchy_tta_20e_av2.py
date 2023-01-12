@@ -20,7 +20,7 @@ input_modality = dict(
 WIDE = True
 WIDE_DIM=512
 
-USE_SAMPLER = False
+USE_SAMPLER = True
 SAMPLER_TYPE = "STANDARD"
 
 voxel_size = [0.075, 0.075, 0.2]

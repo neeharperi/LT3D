@@ -20,9 +20,12 @@ input_modality = dict(
 
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.125, 0.125, 6]
-point_cloud_range = [-50, -50, -3, 50, 50, 3]
+voxel_size = [0.25, 0.25, 6]
+point_cloud_range = [-100, -100, -3, 100, 100, 3]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
+
+start_point_cloud_range = [-50, -50, -3, 50, 50, 3]
+end_point_cloud_range = point_cloud_range
 
 file_client_args = dict(backend='disk')
 # For AV2 we usually do 26-class detection
@@ -259,15 +262,15 @@ train_pipeline = [
         use_color=False,
         file_client_args=file_client_args),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectSample', db_sampler=db_sampler),
+    dict(type='ObjectSample', db_sampler=db_sampler, start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
     dict(
         type='GlobalRotScaleTrans',
         rot_range=[-0.3925, 0.3925],
         scale_ratio_range=[0.95, 1.05],
         translation_std=[0, 0, 0]),
     dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeInterval', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeInterval', point_cloud_range=point_cloud_range),
+    dict(type='ObjectRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
+    dict(type='PointsRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),    
     dict(type='ObjectNameFilter', classes=CLASS_NAMES),
     dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
@@ -307,7 +310,7 @@ test_pipeline = [
                 translation_std=[0, 0, 0]),
             dict(type='RandomFlip3D'),
             dict(
-                type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+                type='PointsRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
             dict(
                 type='DefaultFormatBundle3D',
                 class_names=CLASS_NAMES,

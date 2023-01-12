@@ -21,7 +21,7 @@ input_modality = dict(
 use_sampler = True
 sampler_type = "standard"
 
-voxel_size = [0.25, 0.25, 8]
+voxel_size = [0.125, 0.125, 8]
 point_cloud_range = [-50, -50, -5, 50, 50, 3]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 

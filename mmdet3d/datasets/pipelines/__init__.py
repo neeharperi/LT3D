@@ -13,14 +13,14 @@ from .transforms_3d import (AffineResize, BackgroundPointsFilter,
                             IndoorPatchPointSample, IndoorPointSample,
                             MultiViewWrapper, ObjectNameFilter, ObjectNameExpansion, ObjectNoise,
                             ObjectRangeFilter, ObjectRangeFilterInterval, ObjectSample, PointSample,
-                            PointShuffle, PointsRangeFilter, PointsRangeFilterInterval,
+                            PointShuffle, PointsRangeFilter, PointsRangeFilterInterval, PointsObjectRangeFilterInterval,
                             RandomDropPointsColor, RandomFlip3D,
                             RandomJitterPoints, RandomRotate, RandomShiftScale,
                             RangeLimitedRandomCrop, VoxelBasedPointSampler)
 
 __all__ = [
     'ObjectSample', 'RandomFlip3D', 'ObjectNoise', 'GlobalRotScaleTrans',
-    'PointShuffle', 'ObjectRangeFilter', 'PointsRangeFilter', 'ObjectRangeFilterInterval', 'PointsRangeFilterInterval', 'Collect3D',
+    'PointShuffle', 'ObjectRangeFilter', 'PointsRangeFilter', 'ObjectRangeFilterInterval', 'PointsRangeFilterInterval', 'PointsObjectRangeFilterInterval', 'Collect3D',
     'Compose', 'LoadMultiViewImageFromFiles', 'LoadPointsFromFile',
     'DefaultFormatBundle', 'DefaultFormatBundle3D', 'DataBaseSampler',
     'NormalizePointsColor', 'LoadAnnotations3D', 'IndoorPointSample',

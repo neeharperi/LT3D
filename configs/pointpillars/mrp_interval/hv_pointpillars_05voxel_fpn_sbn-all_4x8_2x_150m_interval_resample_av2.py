@@ -20,9 +20,12 @@ input_modality = dict(
 
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.125, 0.125, 6]
-point_cloud_range = [-50, -50, -3, 50, 50, 3]
+voxel_size = [0.5, 0.5, 6]
+point_cloud_range = [-150, -150, -3, 150, 150, 3]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
+
+start_point_cloud_range = [-100, -100, -3, 100, 100, 3]
+end_point_cloud_range = point_cloud_range
 
 file_client_args = dict(backend='disk')
 # For AV2 we usually do 26-class detection
@@ -69,7 +72,7 @@ model = dict(
     pts_voxel_encoder=dict(
         type='HardVFE',
         in_channels=6,
-        feat_channels=[16, 16],
+        feat_channels=[64, 64],
         with_distance=False,
         voxel_size=voxel_size,
         with_cluster_center=True,
@@ -77,27 +80,27 @@ model = dict(
         point_cloud_range=point_cloud_range,
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=16, output_shape=output_shape), #
+        type='PointPillarsScatter', in_channels=64, output_shape=output_shape), #
     pts_backbone=dict(
         type='SECOND',
-        in_channels=16,
+        in_channels=64,
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
         layer_nums=[3, 5, 5],
         layer_strides=[2, 2, 2],
-        out_channels=[16, 32, 64]),
+        out_channels=[64, 128, 256]),
     pts_neck=dict(
         type='FPN',
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
         act_cfg=dict(type='ReLU'),
-        in_channels=[16, 32, 64],
-        out_channels=64,
+        in_channels=[64, 128, 256],
+        out_channels=256,
         start_level=0,
         num_outs=3),
     pts_bbox_head=dict(
         type='Anchor3DHead',
         num_classes=len(TOTAL_CLASS_NAMES),
-        in_channels=64,
-        feat_channels=64,
+        in_channels=256,
+        feat_channels=256,
         use_direction_classifier=True,
         anchor_generator=dict(
             type='AlignedAnchor3DRangeGenerator',
@@ -259,15 +262,15 @@ train_pipeline = [
         use_color=False,
         file_client_args=file_client_args),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectSample', db_sampler=db_sampler),
+    dict(type='ObjectSample', db_sampler=db_sampler, start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
     dict(
         type='GlobalRotScaleTrans',
         rot_range=[-0.3925, 0.3925],
         scale_ratio_range=[0.95, 1.05],
         translation_std=[0, 0, 0]),
     dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
+    dict(type='PointsRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
     dict(type='ObjectNameFilter', classes=CLASS_NAMES),
     dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
@@ -307,7 +310,7 @@ test_pipeline = [
                 translation_std=[0, 0, 0]),
             dict(type='RandomFlip3D'),
             dict(
-                type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+                type='PointsRangeFilterInterval', start_point_cloud_range=start_point_cloud_range, end_point_cloud_range=end_point_cloud_range),
             dict(
                 type='DefaultFormatBundle3D',
                 class_names=CLASS_NAMES,

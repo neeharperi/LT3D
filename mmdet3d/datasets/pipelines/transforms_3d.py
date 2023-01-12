@@ -434,13 +434,18 @@ class ObjectSample(object):
             3D labels.
     """
 
-    def __init__(self, db_sampler, sample_2d=False, use_ground_plane=False):
+    def __init__(self, db_sampler, start_point_cloud_range=None, end_point_cloud_range=None, sample_2d=False, use_ground_plane=False):
+        db_sampler['start_point_cloud_range'] = start_point_cloud_range
+        db_sampler['end_point_cloud_range'] = end_point_cloud_range
+
         self.sampler_cfg = db_sampler
         self.sample_2d = sample_2d
         if 'type' not in db_sampler.keys():
             db_sampler['type'] = 'DataBaseSampler'
+
         self.db_sampler = build_from_cfg(db_sampler, OBJECTSAMPLERS)
         self.use_ground_plane = use_ground_plane
+
 
     @staticmethod
     def remove_points_in_boxes(points, boxes):
@@ -1171,6 +1176,105 @@ class PointsRangeFilterInterval(object):
         repr_str = self.__class__.__name__
         repr_str += f'(point_cloud_range={self.pcd_range.tolist()})'
         return repr_str
+
+@PIPELINES.register_module()
+class PointsObjectRangeFilterInterval(object):
+    """Filter points by the range.
+
+    Args:
+        point_cloud_range (list[float]): Point cloud range.
+    """
+
+    def __init__(self, start_point_cloud_range, end_point_cloud_range, p=0.5):
+        self.start_pcd_range = np.array(start_point_cloud_range, dtype=np.float32)
+        self.end_pcd_range = np.array(end_point_cloud_range, dtype=np.float32)
+        self.probability = p
+
+    def __call__(self, input_dict):
+        """Call function to filter points by the range.
+
+        Args:
+            input_dict (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after filtering, 'points', 'pts_instance_mask'
+                and 'pts_semantic_mask' keys are updated in the result dict.
+        """
+
+        use_mask = np.random.uniform() < self.probability
+        points = input_dict['points']
+        start_points_mask = points.in_range_3d(self.start_pcd_range)
+        end_points_mask = points.in_range_3d(self.end_pcd_range)
+
+        points_mask = end_points_mask.clone()
+
+        if use_mask:
+            points_mask[start_points_mask] = False
+
+        clean_points = points[points_mask]
+        input_dict['points'] = clean_points
+        points_mask = points_mask.numpy()
+
+        pts_instance_mask = input_dict.get('pts_instance_mask', None)
+        pts_semantic_mask = input_dict.get('pts_semantic_mask', None)
+
+        if pts_instance_mask is not None:
+            input_dict['pts_instance_mask'] = pts_instance_mask[points_mask]
+
+        if pts_semantic_mask is not None:
+            input_dict['pts_semantic_mask'] = pts_semantic_mask[points_mask]
+
+        """Call function to filter objects by the range.
+
+        Args:
+            input_dict (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after filtering, 'gt_bboxes_3d', 'gt_labels_3d'
+                keys are updated in the result dict.
+        """
+        # Check points instance type and initialise bev_range
+        if isinstance(input_dict['gt_bboxes_3d'],
+                      (LiDARInstance3DBoxes, DepthInstance3DBoxes)):
+            start_bev_range = self.start_pcd_range[[0, 1, 3, 4]]
+            end_bev_range = self.end_pcd_range[[0, 1, 3, 4]]
+
+        elif isinstance(input_dict['gt_bboxes_3d'], CameraInstance3DBoxes):
+            start_bev_range = self.start_pcd_range[[0, 2, 3, 5]]
+            end_bev_range = self.end_pcd_range[[0, 2, 3, 5]]
+
+        gt_bboxes_3d = input_dict['gt_bboxes_3d']
+        gt_labels_3d = input_dict['gt_labels_3d']
+
+        start_mask = gt_bboxes_3d.in_range_bev(start_bev_range)
+        end_mask = gt_bboxes_3d.in_range_bev(end_bev_range)
+        
+        mask = end_mask.clone()
+
+        if use_mask:
+            mask[start_mask] = False
+
+        gt_bboxes_3d = gt_bboxes_3d[mask]
+        # mask is a torch tensor but gt_labels_3d is still numpy array
+        # using mask to index gt_labels_3d will cause bug when
+        # len(gt_labels_3d) == 1, where mask=1 will be interpreted
+        # as gt_labels_3d[1] and cause out of index error
+        gt_labels_3d = gt_labels_3d[mask.numpy().astype(np.bool)]
+
+        # limit rad to [-pi, pi]
+        gt_bboxes_3d.limit_yaw(offset=0.5, period=2 * np.pi)
+        input_dict['gt_bboxes_3d'] = gt_bboxes_3d
+        input_dict['gt_labels_3d'] = gt_labels_3d
+        
+        return input_dict
+
+    def __repr__(self):
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(point_cloud_range={self.pcd_range.tolist()})'
+        return repr_str
+
+
 
 @PIPELINES.register_module()
 class ObjectNameFilter(object):

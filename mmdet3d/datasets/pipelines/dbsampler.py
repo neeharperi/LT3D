@@ -124,7 +124,9 @@ class DataBaseSampler(object):
                  bbox_code_size=None,
                  sampler_type=None, 
                  task_names=None,
-                 class_mapping=None,                 
+                 class_mapping=None,
+                 start_point_cloud_range=None,
+                 end_point_cloud_range=None,             
                  points_loader=dict(
                      type='LoadPointsFromFile',
                      coord_type='LIDAR',
@@ -144,6 +146,10 @@ class DataBaseSampler(object):
         self.class_mapping = class_mapping
         self.points_loader = mmcv.build_from_cfg(points_loader, PIPELINES)
         self.file_client = mmcv.FileClient(**file_client_args)
+        self.start_point_cloud_range = start_point_cloud_range
+        self.end_point_cloud_range = end_point_cloud_range
+
+        filter_range = start_point_cloud_range is not None and end_point_cloud_range is not None
 
         # load data base infos
         if hasattr(self.file_client, 'get_local_path'):
@@ -197,8 +203,11 @@ class DataBaseSampler(object):
 
         self.sampler_dict = {}
         for k, v in self.group_db_infos.items():
+            if filter_range:
+                v = [box for box in v if np.linalg.norm(box['box3d_lidar'][:2]) > abs(start_point_cloud_range[0]) and  
+                                         np.linalg.norm(box['box3d_lidar'][:2]) < abs(end_point_cloud_range[0])]
+
             self.sampler_dict[k] = BatchSampler(v, k, shuffle=True)
-        # TODO: No group_sampling currently
 
     @staticmethod
     def filter_by_difficulty(db_infos, removed_difficulty):
