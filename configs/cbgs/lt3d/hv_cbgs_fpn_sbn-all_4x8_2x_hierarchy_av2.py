@@ -23,6 +23,7 @@ SAMPLER_TYPE = "STANDARD"
 
 voxel_size = [0.075, 0.075, 0.2]
 point_cloud_range = [-54, -54, -3, 54, 54, 3]
+sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 
 file_client_args = dict(backend='disk')
@@ -196,7 +197,7 @@ prepare=dict(
         STROLLER=5,
         DOG=5,
         )),
-classes=class_names,
+classes=CLASS_NAMES,
 sample_groups=dict(
     REGULAR_VEHICLE=2,
     PEDESTRIAN=2,
@@ -266,9 +267,9 @@ if USE_SAMPLER:
         dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
         dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
         dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectNameFilter', classes=CLASS_NAMES),
         dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
         dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 else:
@@ -302,9 +303,9 @@ else:
         dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
         dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
         dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectNameFilter', classes=CLASS_NAMES),
         dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
         dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 
@@ -439,7 +440,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'))
@@ -449,26 +450,29 @@ data = dict(
 # use a default schedule.
 evaluation = dict(interval=20, pipeline=eval_pipeline)
 
-# optimizer
-# This schedule is mainly used by models on nuScenes dataset
-optimizer = dict(type='AdamW', lr=0.001, weight_decay=0.01)
+optimizer = dict(type='AdamW', lr=1e-4, weight_decay=0.01)
 # max_norm=10 is better for SECOND
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 lr_config = dict(
-    policy='step',
-    warmup='linear',
-    warmup_iters=1000,
-    warmup_ratio=1.0 / 1000,
-    step=[20, 23])
-momentum_config = None
-# runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=24)
-
+    policy='cyclic',
+    target_ratio=(10, 1e-4),
+    cyclic_times=1,
+    step_ratio_up=0.4,
+)
+momentum_config = dict(
+    policy='cyclic',
+    target_ratio=(0.85 / 0.95, 1),
+    cyclic_times=1,
+    step_ratio_up=0.4,
+)
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0
 # set multi-process start method as `fork` to speed up the training
 mp_start_method = 'fork'
+
+# runtime settings
+runner = dict(type='EpochBasedRunner', max_epochs=20)
 
 checkpoint_config = dict(interval=1)
 # yapf:disable push

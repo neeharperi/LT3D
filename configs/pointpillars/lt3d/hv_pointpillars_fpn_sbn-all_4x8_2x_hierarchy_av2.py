@@ -21,7 +21,7 @@ input_modality = dict(
 USE_SAMPLER = True
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.25, 0.25, 6]
+voxel_size = [0.125, 0.125, 6]
 point_cloud_range = [-50, -50, -3, 50, 50, 3]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 
@@ -96,7 +96,7 @@ model = dict(
         num_outs=3),
     pts_bbox_head=dict(
         type='Anchor3DHead',
-        num_classes=len(total_class_names),
+        num_classes=len(TOTAL_CLASS_NAMES),
         in_channels=256,
         feat_channels=256,
         use_direction_classifier=True,
@@ -200,7 +200,7 @@ prepare=dict(
         STROLLER=5,
         DOG=5,
         )),
-classes=class_names,
+classes=CLASS_NAMES,
 sample_groups=dict(
     REGULAR_VEHICLE=2,
     PEDESTRIAN=2,
@@ -270,9 +270,9 @@ if USE_SAMPLER:
         dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
         dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
         dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectNameFilter', classes=CLASS_NAMES),
         dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
         dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 else:
@@ -306,9 +306,9 @@ else:
         dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
         dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
         dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='ObjectNameFilter', classes=CLASS_NAMES),
         dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
         dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 
@@ -443,7 +443,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=class_names,
+        classes=CLASS_NAMES,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'))

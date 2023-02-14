@@ -31,7 +31,7 @@ class CBGS(MVXTwoStageDetector):
                              pts_middle_encoder, pts_fusion_layer,
                              img_backbone, pts_backbone, img_neck, pts_neck,
                              pts_bbox_head, img_roi_head, img_rpn_head,
-                             train_cfg, test_cfg, pretrained, init_cfg, late_fusion)
+                             train_cfg, test_cfg, pretrained, init_cfg)
 
     @property
     def with_velocity(self):

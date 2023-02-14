@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from .base import Base3DDetector
 from .centerpoint import CenterPoint
+from .cbgs import CBGS
 from .dynamic_voxelnet import DynamicVoxelNet
 from .fcos_mono3d import FCOSMono3D
 from .groupfree3dnet import GroupFree3DNet

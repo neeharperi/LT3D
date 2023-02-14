@@ -23,6 +23,7 @@ sampler_type = "standard"
 
 voxel_size = [0.075, 0.075, 0.2]
 point_cloud_range = [-54, -54, -3, 54, 54, 3]
+sparse_shape = [int((abs(point_cloud_range[2]) + abs(point_cloud_range[5])) / voxel_size[2]) + 1, int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1]), int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0])]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 
 file_client_args = dict(backend='disk')
@@ -81,7 +82,7 @@ model = dict(
         block_type='basicblock'),
     pts_backbone=dict(
         type='SECOND',
-        in_channels=256,
+        in_channels=128,
         out_channels=[128, 256],
         layer_nums=[5, 5],
         layer_strides=[1, 2],
@@ -205,62 +206,79 @@ sample_groups=dict(
         type='LoadPointsFromFile',
         coord_type='LIDAR',
         load_dim=5,
-        use_dim=[0, 1, 2, 3],
+        use_dim=[0, 1, 2, 3, 4],
         file_client_args=file_client_args))
 
 if use_sampler: 
     train_pipeline = [
-        dict(
-            type='LoadPointsFromFile',
-            coord_type='LIDAR',
-            load_dim=5,
-            use_dim=5,
-            file_client_args=file_client_args),
-        dict(
-            type='LoadPointsFromMultiSweeps',
-            sweeps_num=9,
-            file_client_args=file_client_args),
-        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-        dict(type='ObjectNameFilter', classes=class_names),
-        dict(type='ObjectSample', db_sampler=db_sampler),
-        dict(
-            type='GlobalRotScaleTrans',
-            rot_range=[-0.3925, 0.3925],
-            scale_ratio_range=[0.95, 1.05],
-            translation_std=[0, 0, 0]),
-        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
-        dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
-        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        file_client_args=file_client_args),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=9,
+        use_dim=[0, 1, 2, 3, 4],
+        file_client_args=file_client_args,
+        pad_empty_sweeps=True,
+        remove_close=True),
+    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+    dict(type='ObjectNameFilter', classes=class_names),
+    dict(type='ObjectSample', db_sampler=db_sampler),
+    dict(
+        type='GlobalRotScaleTrans',
+        rot_range=[-0.3925, 0.3925],
+        scale_ratio_range=[0.95, 1.05],
+        translation_std=[0, 0, 0]),
+    dict(
+        type='RandomFlip3D',
+        sync_2d=False,
+        flip_ratio_bev_horizontal=0.5,
+        flip_ratio_bev_vertical=0.5),
+    dict(type='ObjectNameExpansion', classes=class_names, task_names=task_names, class_mapping=class_mapping),
+    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectNameFilter', classes=total_class_names),
+    dict(type='PointShuffle'),
+    dict(type='DefaultFormatBundle3D', class_names=total_class_names),
+    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 else:
     train_pipeline = [
-        dict(
-            type='LoadPointsFromFile',
-            coord_type='LIDAR',
-            load_dim=5,
-            use_dim=5,
-            file_client_args=file_client_args),
-        dict(
-            type='LoadPointsFromMultiSweeps',
-            sweeps_num=9,
-            file_client_args=file_client_args),
-        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-        dict(
-            type='GlobalRotScaleTrans',
-            rot_range=[-0.3925, 0.3925],
-            scale_ratio_range=[0.95, 1.05],
-            translation_std=[0, 0, 0]),
-        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-        dict(type='ObjectNameFilter', classes=class_names),
-        dict(type='PointShuffle'),
-        dict(type='DefaultFormatBundle3D', class_names=class_names),
-        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        file_client_args=file_client_args),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=9,
+        use_dim=[0, 1, 2, 3, 4],
+        file_client_args=file_client_args,
+        pad_empty_sweeps=True,
+        remove_close=True),
+    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+    dict(type='ObjectNameFilter', classes=class_names),
+    dict(
+        type='GlobalRotScaleTrans',
+        rot_range=[-0.3925, 0.3925],
+        scale_ratio_range=[0.95, 1.05],
+        translation_std=[0, 0, 0]),
+    dict(
+        type='RandomFlip3D',
+        sync_2d=False,
+        flip_ratio_bev_horizontal=0.5,
+        flip_ratio_bev_vertical=0.5),
+    dict(type='ObjectNameExpansion', classes=class_names, task_names=task_names, class_mapping=class_mapping),
+    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectNameFilter', classes=total_class_names),
+    dict(type='PointShuffle'),
+    dict(type='DefaultFormatBundle3D', class_names=total_class_names),
+    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
     ]
 
 test_pipeline = [
@@ -273,11 +291,15 @@ test_pipeline = [
     dict(
         type='LoadPointsFromMultiSweeps',
         sweeps_num=9,
-        file_client_args=file_client_args),
+        use_dim=[0, 1, 2, 3, 4],
+        file_client_args=file_client_args,
+        pad_empty_sweeps=True,
+        remove_close=True),
     dict(
         type='MultiScaleFlipAug3D',
         img_scale=(1333, 800),
-        pts_scale_ratio=1,
+        pts_scale_ratio=[0.95, 1.0, 1.05],
+        # Add double-flip augmentation
         flip=False,
         transforms=[
             dict(
@@ -285,7 +307,7 @@ test_pipeline = [
                 rot_range=[0, 0],
                 scale_ratio_range=[1., 1.],
                 translation_std=[0, 0, 0]),
-            dict(type='RandomFlip3D'),
+            dict(type='RandomFlip3D', sync_2d=False),
             dict(
                 type='PointsRangeFilter', point_cloud_range=point_cloud_range),
             dict(
@@ -307,7 +329,10 @@ eval_pipeline = [
     dict(
         type='LoadPointsFromMultiSweeps',
         sweeps_num=9,
-        file_client_args=file_client_args),
+        use_dim=[0, 1, 2, 3, 4],
+        file_client_args=file_client_args,
+        pad_empty_sweeps=True,
+        remove_close=True),
     dict(
         type='DefaultFormatBundle3D',
         class_names=class_names,
@@ -382,29 +407,31 @@ data = dict(
 # Since the models are trained by 24 epochs by default, we set evaluation
 # interval to be 24. Please change the interval accordingly if you do not
 # use a default schedule.
-evaluation = dict(interval=20, pipeline=eval_pipeline)
+eevaluation = dict(interval=20, pipeline=eval_pipeline)
 
-
-# optimizer
-# This schedule is mainly used by models on nuScenes dataset
-optimizer = dict(type='AdamW', lr=0.001, weight_decay=0.01)
+optimizer = dict(type='AdamW', lr=1e-4, weight_decay=0.01)
 # max_norm=10 is better for SECOND
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 lr_config = dict(
-    policy='step',
-    warmup='linear',
-    warmup_iters=1000,
-    warmup_ratio=1.0 / 1000,
-    step=[20, 23])
-momentum_config = None
-# runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=24)
-
+    policy='cyclic',
+    target_ratio=(10, 1e-4),
+    cyclic_times=1,
+    step_ratio_up=0.4,
+)
+momentum_config = dict(
+    policy='cyclic',
+    target_ratio=(0.85 / 0.95, 1),
+    cyclic_times=1,
+    step_ratio_up=0.4,
+)
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0
 # set multi-process start method as `fork` to speed up the training
 mp_start_method = 'fork'
+
+# runtime settings
+runner = dict(type='EpochBasedRunner', max_epochs=20)
 
 checkpoint_config = dict(interval=1)
 # yapf:disable push
