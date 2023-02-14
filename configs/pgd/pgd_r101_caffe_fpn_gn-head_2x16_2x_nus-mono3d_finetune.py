@@ -6,4 +6,4 @@ model = dict(
     ]))
 # optimizer
 optimizer = dict(lr=0.002)
-load_from = 'work_dirs/pgd_nus_benchmark_2x/latest.pth'
+load_from = 'work_dirs/pgd_r101_caffe_fpn_gn-head_2x16_2x_nus-mono3d/latest.pth'

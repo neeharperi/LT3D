@@ -24,6 +24,7 @@ class_names = [
 ]
 
 model = dict(
+    type='FCOSMono3D',
     backbone=dict(
         type='ResNet',
         depth=101,
@@ -99,12 +100,12 @@ model = dict(
         depth_bins=6,
         bbox_coder=dict(
             type='PGDBBoxCoder',
-            base_depths=[(4.62, 1.73, 1.96), (6.93, 2.83, 2.51), (12.56, 3.89, 2.94), (11.22, 3.5, 2.95),
+            base_dims=[(4.62, 1.73, 1.96), (6.93, 2.83, 2.51), (12.56, 3.89, 2.94), (11.22, 3.5, 2.95),
                         (6.68, 3.21, 2.85), (1.7, 1.29, 0.61), (2.11, 1.46, 0.78), (5.06, 1.88, 2.04),
                         (0.73, 1.77, 0.67), (0.53, 1.38, 0.51), (0.69, 1.82, 0.73), (0.71, 1.73, 0.72),
                         (0.94, 1.19, 0.62), (1.18, 1.74, 0.62), (0.66, 1.06, 0.6), (0.9, 1.19, 0.97),
                         (0.41, 1.08, 0.41), (0.5, 0.99, 2.52)],
-            base_dims=[(37.152, 24.632), (31.99, 21.124), (20.606, 13.679), (23.893, 15.209), 
+            base_depths=[(37.152, 24.632), (31.99, 21.124), (20.606, 13.679), (23.893, 15.209), 
                        (20.571, 14.341), (34.157, 20.107), (27.457, 15.528), (22.736, 15.011), 
                        (22.193, 16.328), (24.278, 16.049), (22.348, 13.704), (40.911, 26.341),
                        (39.687, 23.974), (22.298, 10.944), (24.985, 12.478), (29.132, 16.155),
@@ -206,9 +207,10 @@ data = dict(
         box_type_3d='Camera'))
 evaluation = dict(interval=24)
 
-# optimizer
-optimizer = dict(lr=0.004, paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
+#optimizer
+optimizer = dict(type='SGD', lr=0.004, momentum=0.9, weight_decay=0.0001, paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+
 # learning policy
 lr_config = dict(
     policy='step',
@@ -217,7 +219,7 @@ lr_config = dict(
     warmup_ratio=1.0 / 3,
     step=[16, 22])
 total_epochs = 24
-runner = dict(max_epochs=total_epochs)
+runner = dict(type='EpochBasedRunner', max_epochs=total_epochs)
 
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0

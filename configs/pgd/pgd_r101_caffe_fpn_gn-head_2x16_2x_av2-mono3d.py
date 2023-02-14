@@ -25,6 +25,7 @@ class_names = [
 ]
 
 model = dict(
+    type='FCOSMono3D',
     backbone=dict(
         type='ResNet',
         depth=101,
@@ -106,7 +107,7 @@ model = dict(
                         (56.094, 42.341), (70.247, 51.26), (35.152, 24.898), (44.353, 30.747), 
                         (42.142, 32.147), (48.5, 36.594), (39.861, 28.927), (29.193, 19.689), 
                         (61.041, 46.659), (62.564, 47.949), (50.827, 39.056), (43.389, 31.502), 
-                        (71.797, 52.945), (97.331, 50.898)]
+                        (71.797, 52.945), (97.331, 50.898)],
             base_dims=[(4.48, 1.94, 1.73), (0.7, 0.77, 1.76),(1.12, 0.81, 1.77),(1.26, 0.85, 1.63),
                         (0.82, 0.73, 1.81),(0.36, 0.31, 1.06), (0.36, 0.33, 0.88), (0.44, 1.51, 2.6),
                         (0.69, 0.66, 1.09), (0.36, 0.98, 3.09), (0.32, 0.99, 1.42), (6.66, 2.68, 3.05),
@@ -209,7 +210,7 @@ data = dict(
 evaluation = dict(interval=24)
 
 # optimizer
-optimizer = dict(lr=0.004, paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
+optimizer = dict(type='SGD', lr=0.004, momentum=0.9, weight_decay=0.0001, paramwise_cfg=dict(bias_lr_mult=2., bias_decay_mult=0.))
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 
 # learning policy
@@ -220,8 +221,7 @@ lr_config = dict(
     warmup_ratio=1.0 / 3,
     step=[16, 22])
 total_epochs = 24
-runner = dict(max_epochs=total_epochs)
-
+runner = dict(type='EpochBasedRunner', max_epochs=total_epochs)
 # disable opencv multithreading to avoid system being overloaded
 opencv_num_threads = 0
 # set multi-process start method as `fork` to speed up the training

@@ -18,10 +18,11 @@ input_modality = dict(
     use_map=False,
     use_external=False)
 
+USE_SAMPLER = True
 SAMPLER_TYPE = "STANDARD"
 
-voxel_size = [0.5, 0.5, 6]
-point_cloud_range = [-150, -150, -3, 150, 150, 3]
+voxel_size = [0.075, 0.075, 0.2]
+point_cloud_range = [-54, -54, -3, 54, 54, 3]
 output_shape  = [int((abs(point_cloud_range[0]) + abs(point_cloud_range[3])) / voxel_size[0]), int((abs(point_cloud_range[1]) + abs(point_cloud_range[4])) / voxel_size[1])]
 
 file_client_args = dict(backend='disk')
@@ -33,7 +34,7 @@ CLASS_NAMES = [
     'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG'
 ]
 
-TOTAL_CLASS_NAMES = CLASS_NAMES
+TOTAL_CLASS_NAMES = CLASS_NAMES + ["VEHICLE", "VULNERABLE", "MOVABLE", "OBJECT"]
 
 TASK_NAMES = {"STANDARD": ['REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER', 'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 
                             'MOBILE_PEDESTRIAN_CROSSING_SIGN', 'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS', 'MESSAGE_BOARD_TRAILER', 
@@ -58,38 +59,34 @@ CLASS_MAPPING = {"STANDARD": [['REGULAR_VEHICLE'], ['PEDESTRIAN'], ['BICYCLIST']
 # Usually voxel size is changed consistently with the point cloud range
 # If point cloud range is modified, do remember to change all related
 # keys in the config.
+
 model = dict(
-    type='MVXFasterRCNN',
-    pts_voxel_layer=dict(
-        max_num_points=64,
-        point_cloud_range=point_cloud_range,
-        voxel_size=voxel_size,
-        max_voxels=(30000, 40000),
-        deterministic=False),
-    pts_voxel_encoder=dict(
-        type='HardVFE',
-        in_channels=6,
-        feat_channels=[64, 64],
-        with_distance=False,
-        voxel_size=voxel_size,
-        with_cluster_center=True,
-        with_voxel_center=True,
-        point_cloud_range=point_cloud_range,
-        norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
+    type='CBGS',
+    pts_voxel_layer=dict(max_num_points=10, voxel_size=voxel_size, max_voxels=(90000, 120000), point_cloud_range=point_cloud_range, deterministic=False),
+    pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=6),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=output_shape), #
+        type='SparseEncoder',
+        in_channels=6,
+        sparse_shape=sparse_shape,
+        output_channels=128,
+        order=('conv', 'norm', 'act'),
+        encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128,
+                                                                      128)),
+        encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
+        block_type='basicblock'),
     pts_backbone=dict(
         type='SECOND',
-        in_channels=64,
-        norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
-        layer_nums=[3, 5, 5],
-        layer_strides=[2, 2, 2],
-        out_channels=[64, 128, 256]),
+        in_channels=128,
+        out_channels=[128, 256],
+        layer_nums=[5, 5],
+        layer_strides=[1, 2],
+        norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv2d', bias=False)),
     pts_neck=dict(
         type='FPN',
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
         act_cfg=dict(type='ReLU'),
-        in_channels=[64, 128, 256],
+        in_channels=[128, 256],
         out_channels=256,
         start_level=0,
         num_outs=3),
@@ -199,7 +196,7 @@ prepare=dict(
         STROLLER=5,
         DOG=5,
         )),
-classes=CLASS_NAMES,
+classes=class_names,
 sample_groups=dict(
     REGULAR_VEHICLE=2,
     PEDESTRIAN=2,
@@ -237,42 +234,80 @@ points_loader=dict(
     use_color=False,
     file_client_args=file_client_args))
 
-train_pipeline = [
-    dict(
-        type='LoadPointsFromFileFeather',
-        coord_type='LIDAR',
-        load_dim=6,
-        use_dim=[0, 1, 2, 3, 4, 5],
-        shift_height=False,
-        use_color=False,
-        file_client_args=file_client_args),
-    dict(
-        type='LoadPointsFromMultiSweepsFeather',
-        coord_type="LIDAR",
-        sweeps_num=5,
-        load_dim=6,
-        use_dim=[0, 1, 2, 3, 4, 5],
-        pad_empty_sweeps=True,
-        remove_close=True,
-        test_mode=False,
-        shift_height=False,
-        use_color=False,
-        file_client_args=file_client_args),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='ObjectSample', db_sampler=db_sampler),
-    dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.3925, 0.3925],
-        scale_ratio_range=[0.95, 1.05],
-        translation_std=[0, 0, 0]),
-    dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=CLASS_NAMES),
-    dict(type='PointShuffle'),
-    dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
-    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
-]
+if USE_SAMPLER:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFileFeather',
+            coord_type='LIDAR',
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweepsFeather',
+            coord_type="LIDAR",
+            sweeps_num=5,
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            pad_empty_sweeps=True,
+            remove_close=True,
+            test_mode=False,
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(type='ObjectSample', db_sampler=db_sampler),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+else:
+    train_pipeline = [
+        dict(
+            type='LoadPointsFromFileFeather',
+            coord_type='LIDAR',
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(
+            type='LoadPointsFromMultiSweepsFeather',
+            coord_type="LIDAR",
+            sweeps_num=5,
+            load_dim=6,
+            use_dim=[0, 1, 2, 3, 4, 5],
+            pad_empty_sweeps=True,
+            remove_close=True,
+            test_mode=False,
+            shift_height=False,
+            use_color=False,
+            file_client_args=file_client_args),
+        dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+        dict(
+            type='GlobalRotScaleTrans',
+            rot_range=[-0.3925, 0.3925],
+            scale_ratio_range=[0.95, 1.05],
+            translation_std=[0, 0, 0]),
+        dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
+        dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+        dict(type='ObjectNameFilter', classes=class_names),
+        dict(type='PointShuffle'),
+        dict(type='DefaultFormatBundle3D', class_names=class_names),
+        dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    ]
+
 test_pipeline = [
     dict(
         type='LoadPointsFromFileFeather',
@@ -345,10 +380,8 @@ eval_pipeline = [
     dict(type='Collect3D', keys=['points'])
 ]
 
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=4,
-    train=dict(
+if USE_SAMPLER:
+    train_data=dict(
         type='CBGSDataset',
         dataset=dict(
             type=dataset_type,
@@ -368,7 +401,30 @@ data = dict(
         test_mode=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
-        box_type_3d='LiDAR'),
+        box_type_3d='LiDAR',
+        sampler_type=SAMPLER_TYPE,
+        task_names=TASK_NAMES,
+        class_mapping=CLASS_MAPPING)
+else:
+    train_data=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + '{}/av2_infos_train.pkl'.format(VERSION),
+        pipeline=train_pipeline,
+        classes=CLASS_NAMES,
+        modality=input_modality,
+        test_mode=False,
+        # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
+        # and box_type_3d='Depth' in sunrgbd and scannet dataset.
+        box_type_3d='LiDAR',
+        sampler_type=SAMPLER_TYPE,
+        task_names=TASK_NAMES,
+        class_mapping=CLASS_MAPPING),
+
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=4,
+    train=train_data,
     val=dict(
         type=dataset_type,
         data_root=data_root,
@@ -383,7 +439,7 @@ data = dict(
         data_root=data_root,
         ann_file=data_root + '{}/av2_infos_val.pkl'.format(VERSION),
         pipeline=test_pipeline,
-        classes=CLASS_NAMES,
+        classes=class_names,
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'))

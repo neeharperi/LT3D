@@ -41,7 +41,6 @@ model = dict(
         init_cfg=dict(
             type='Pretrained',
             checkpoint='open-mmlab://detectron2/resnet101_caffe')),
-            
     neck=dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
@@ -157,6 +156,7 @@ eval_pipeline = [
         class_names=class_names,
         with_label=False),
     dict(type='Collect3D', keys=['img'])
+]
     
 data = dict(
     samples_per_gpu=2,
