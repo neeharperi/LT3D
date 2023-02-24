@@ -16,7 +16,7 @@ from mmdet3d.core.visualizer.image_vis import draw_camera_bbox3d_on_img
 from mmdet3d.core.bbox import Box3DMode, LiDARInstance3DBoxes, CameraInstance3DBoxes, get_box_type
 
 from av2.datasets.sensor.sensor_dataloader import read_city_SE3_ego
-from av2.datasets.sensor.splits import TRAIN, VAL
+from av2.datasets.sensor.splits import TRAIN, VAL, TEST
 from av2.utils.io import read_feather
 from av2.geometry.geometry import quat_to_mat
 from av2.geometry.se3 import SE3
@@ -281,45 +281,54 @@ def generate_info(filename, log_id, log_dir, annotations, name2cid, all_timestam
 
     mmcv.check_file_exist(lidar_path)
     
-    curr_annotations = annotations[annotations["timestamp_ns"] == timestamp_ns]
-    curr_annotations = curr_annotations[curr_annotations["num_interior_pts"] > 0]
+    if annotations is None:
+        gt_bboxes_3d = []
+        gt_labels = []
+        gt_names = [] 
+        gt_num_pts = []
+        gt_velocity = []
+        gt_uuid = []
+        
+    else:
+        curr_annotations = annotations[annotations["timestamp_ns"] == timestamp_ns]
+        curr_annotations = curr_annotations[curr_annotations["num_interior_pts"] > 0]
 
-    gt_bboxes_3d = []
-    gt_labels = []
-    gt_names = [] 
-    gt_num_pts = []
-    gt_velocity = []
-    gt_uuid = []
+        gt_bboxes_3d = []
+        gt_labels = []
+        gt_names = [] 
+        gt_num_pts = []
+        gt_velocity = []
+        gt_uuid = []
 
-    for annotation in curr_annotations.iterrows():
-        class_name = annotation[1]["category"]
+        for annotation in curr_annotations.iterrows():
+            class_name = annotation[1]["category"]
 
-        if class_name not in class_names:
-            continue 
+            if class_name not in class_names:
+                continue 
 
-        track_uuid = annotation[1]["track_uuid"]
-        num_interior_pts = annotation[1]["num_interior_pts"]
+            track_uuid = annotation[1]["track_uuid"]
+            num_interior_pts = annotation[1]["num_interior_pts"]
 
-        gt_labels.append(name2cid[class_name])
-        gt_names.append(class_name)
-        gt_num_pts.append(num_interior_pts)
-        gt_uuid.append(track_uuid)
+            gt_labels.append(name2cid[class_name])
+            gt_names.append(class_name)
+            gt_num_pts.append(num_interior_pts)
+            gt_uuid.append(track_uuid)
 
-        translation = np.array([annotation[1]["tx_m"], annotation[1]["ty_m"], annotation[1]["tz_m"]])
-        lwh = np.array([annotation[1]["length_m"], annotation[1]["width_m"], annotation[1]["height_m"]])
-        rotation = quat_to_mat(np.array([annotation[1]["qw"], annotation[1]["qx"], annotation[1]["qy"], annotation[1]["qz"]]))
-        ego_SE3_object = SE3(rotation=rotation, translation=translation)
+            translation = np.array([annotation[1]["tx_m"], annotation[1]["ty_m"], annotation[1]["tz_m"]])
+            lwh = np.array([annotation[1]["length_m"], annotation[1]["width_m"], annotation[1]["height_m"]])
+            rotation = quat_to_mat(np.array([annotation[1]["qw"], annotation[1]["qx"], annotation[1]["qy"], annotation[1]["qz"]]))
+            ego_SE3_object = SE3(rotation=rotation, translation=translation)
 
-        rot = ego_SE3_object.rotation
-        lwh = lwh.tolist()
-        center = translation.tolist()
-        center[2] = center[2] - lwh[2] / 2
-        yaw = math.atan2(rot[1, 0], rot[0, 0])
+            rot = ego_SE3_object.rotation
+            lwh = lwh.tolist()
+            center = translation.tolist()
+            center[2] = center[2] - lwh[2] / 2
+            yaw = math.atan2(rot[1, 0], rot[0, 0])
 
-        gt_bboxes_3d.append([*center, *lwh, yaw])
+            gt_bboxes_3d.append([*center, *lwh, yaw])
 
-        velocity = box_velocity(annotation,timestamp_ns, all_timestamps, annotations, Path(log_dir))[:2]
-        gt_velocity.append(velocity)
+            velocity = box_velocity(annotation,timestamp_ns, all_timestamps, annotations, Path(log_dir))[:2]
+            gt_velocity.append(velocity)
 
     sweeps, transforms, deltas = aggregate_sweeps(Path(log_dir), timestamp_ns, n_sweep)
     
@@ -348,6 +357,7 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
 
     train_infos = []
     val_infos = []
+    test_infos = []
 
     for log_id in tqdm(TRAIN):
         split = "train"
@@ -360,7 +370,7 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
         mmcv.check_file_exist(annotations_path)
 
         all_timestamps = sorted([int(filename.split(".")[0]) for filename in os.listdir(lidar_paths)])
-        for i, filename in enumerate(os.listdir(lidar_paths)):
+        for i, filename in enumerate(sorted(os.listdir(lidar_paths))):
             if i % TRAIN_SAMPLE_RATE != 0:
                 continue 
 
@@ -382,7 +392,7 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
         mmcv.check_file_exist(annotations_path)
 
         all_timestamps = sorted([int(filename.split(".")[0]) for filename in os.listdir(lidar_paths)])
-        for i, filename in enumerate(os.listdir(lidar_paths)):
+        for i, filename in enumerate(sorted(os.listdir(lidar_paths))):
             if i % VAL_SAMPLE_RATE != 0:
                 continue 
 
@@ -392,6 +402,25 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
         
     out_file = "{out_dir}/{info_prefix}_infos_{split}.pkl".format(out_dir=out_dir,info_prefix=info_prefix, split=split)
     pickle.dump(val_infos, open(out_file, "wb"))
+    
+    for log_id in tqdm(TEST):
+        split = "test"
+
+        log_dir = "{root_path}/{split}/{log_id}".format(root_path=root_path, split=split, log_id=log_id)
+        lidar_paths = "{log_dir}/sensors/lidar".format(log_dir=log_dir)
+        annotations = None
+
+        all_timestamps = sorted([int(filename.split(".")[0]) for filename in os.listdir(lidar_paths)])
+        for i, filename in enumerate(sorted(os.listdir(lidar_paths))):
+            if i % VAL_SAMPLE_RATE != 0:
+                continue 
+
+            info = generate_info(filename, log_id, log_dir, annotations, name2cid, all_timestamps, n_sweep)
+
+            test_infos.append(info)
+        
+    out_file = "{out_dir}/{info_prefix}_infos_{split}.pkl".format(out_dir=out_dir,info_prefix=info_prefix, split=split)
+    pickle.dump(test_infos, open(out_file, "wb"))
 
 def get_2d_boxes(info, cam_model, width, height, cam_img, mono3d=True):
     timestamp = info["timestamp"]

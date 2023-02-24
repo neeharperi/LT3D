@@ -666,7 +666,11 @@ class AV2Dataset(Dataset):
                 rgbPredictionsDataFrame = pd.read_csv(filter)
                 predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
-        range_list = [(0, 50), (50, 100), (100, 150), (0, 150)]
+        if metric_type == "standard":
+            range_list = [(0, 50), (50, 100), (100, 150), (0, 150)]
+        else:
+            range_list = [(0, 50)]
+
         user = os.getlogin()
 
         if user == "nperi":
