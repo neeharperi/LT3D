@@ -117,7 +117,7 @@ class NuScenesMonoDataset(CocoDataset):
         self.filter_empty_gt = filter_empty_gt
         self.CLASSES = self.get_classes(classes)
         self.file_client = mmcv.FileClient(**file_client_args)
-
+        print('Annotation file', ann_file)
         # load annotations (and proposals)
         with self.file_client.get_local_path(self.ann_file) as local_path:
             self.data_infos = self.load_annotations(local_path)
@@ -239,6 +239,7 @@ class NuScenesMonoDataset(CocoDataset):
                 # 2.5D annotations in camera coordinates
                 center2d = ann['center2d'][:2]
                 depth = ann['center2d'][2]
+                # print('category:',self.cat2l`abel[ann['category_id']], 'depth',depth)
                 centers2d.append(center2d)
                 depths.append(depth)
 
@@ -379,7 +380,7 @@ class NuScenesMonoDataset(CocoDataset):
                 self.data_infos[sample_id + 1 - CAM_NUM], boxes_per_frame,
                 mapped_class_names, self.eval_detection_configs,
                 self.eval_version)
-            cam_boxes3d, scores, labels = nusc_box_to_cam_box3d(boxes)
+            cam_boxes3d, scores, labels = nusc_box_to_cam_box3d(boxes, len(self.CLASSES))
             # box nms 3d over 6 images in a frame
             # TODO: move this global setting into config
             nms_cfg = dict(
@@ -444,8 +445,10 @@ class NuScenesMonoDataset(CocoDataset):
 
     def _evaluate_single(self,
                          result_path,
+                         out_path=None,
                          logger=None,
                          metric='bbox',
+                         metric_type='standard',
                          result_name='img_bbox'):
         """Evaluation for a single model in nuScenes protocol.
 
@@ -471,12 +474,16 @@ class NuScenesMonoDataset(CocoDataset):
             'v1.0-mini': 'mini_val',
             'v1.0-trainval': 'val',
         }
+        # if self.version=='':
+        #     eval_set=='val'
+        eval_set = eval_set_map[self.version]
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,
             result_path=result_path,
-            eval_set=eval_set_map[self.version],
+            eval_set=eval_set,
             output_dir=output_dir,
+            metric=metric,
             verbose=False)
         nusc_eval.main(render_curves=True)
 
@@ -551,13 +558,13 @@ class NuScenesMonoDataset(CocoDataset):
 
     def evaluate(self,
                  results,
-                 metric='bbox',
+                 out_path=None,
                  logger=None,
                  jsonfile_prefix=None,
                  result_names=['img_bbox'],
                  show=False,
-                 out_dir=None,
-                 pipeline=None):
+                 pipeline=None,
+                 **kwargs):
         """Evaluation in nuScenes protocol.
 
         Args:
@@ -581,8 +588,8 @@ class NuScenesMonoDataset(CocoDataset):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-
         result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        metric_type = kwargs.get("metric_type", None)
 
         if isinstance(result_files, dict):
             results_dict = dict()
@@ -596,8 +603,8 @@ class NuScenesMonoDataset(CocoDataset):
         if tmp_dir is not None:
             tmp_dir.cleanup()
 
-        if show or out_dir:
-            self.show(results, out_dir, pipeline=pipeline)
+        if show or out_path:
+            self.show(results, out_path, pipeline=pipeline)
         return results_dict
 
     def _extract_data(self, index, pipeline, key, load_annos=False):
@@ -824,11 +831,12 @@ def global_nusc_box_to_cam(info,
     return box_list
 
 
-def nusc_box_to_cam_box3d(boxes):
+def nusc_box_to_cam_box3d(boxes, num_cls):
     """Convert boxes from :obj:`NuScenesBox` to :obj:`CameraInstance3DBoxes`.
 
     Args:
         boxes (list[:obj:`NuScenesBox`]): List of predicted NuScenesBoxes.
+        num_cls (int) : Num classes for which results are being computed: default is all Classes.
 
     Returns:
         tuple (:obj:`CameraInstance3DBoxes` | torch.Tensor | torch.Tensor):
@@ -849,7 +857,7 @@ def nusc_box_to_cam_box3d(boxes):
         boxes_3d, box_dim=9, origin=(0.5, 0.5, 0.5))
     scores = torch.Tensor([b.score for b in boxes]).cuda()
     labels = torch.LongTensor([b.label for b in boxes]).cuda()
-    nms_scores = scores.new_zeros(scores.shape[0], 10 + 1)
+    nms_scores = scores.new_zeros(scores.shape[0], num_cls + 1)
     indices = labels.new_tensor(list(range(scores.shape[0])))
     nms_scores[indices, labels] = scores
     return cam_boxes3d, nms_scores, labels
