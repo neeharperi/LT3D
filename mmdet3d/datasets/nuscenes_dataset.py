@@ -332,6 +332,7 @@ class NuScenesDataset(Custom3DDataset):
 
         # the nuscenes box center is [0.5, 0.5, 0.5], we change it to be
         # the same as KITTI (0.5, 0.5, 0)
+
         gt_bboxes_3d = LiDARInstance3DBoxes(
             gt_bboxes_3d,
             box_dim=gt_bboxes_3d.shape[-1],
@@ -343,40 +344,40 @@ class NuScenesDataset(Custom3DDataset):
             gt_names=gt_names_3d)
         return anns_results
 
-def multimodal_filter(self, predictions, rgb):
-    dist_th = 8
-    tokens = predictions["results"].keys()
-    filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
+    def multimodal_filter(self, predictions, rgb):
+        dist_th = 8
+        tokens = predictions["results"].keys()
+        filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
 
-    for sample_token in tokens:
-        lidar = predictions["results"][sample_token]
-        rgb = rgb["results"][sample_token]
+        for sample_token in tokens:
+            lidar = predictions["results"][sample_token]
+            rgb = rgb["results"][sample_token]
 
-        filter_lidar = []
-        for name in CLASSES:
-            ld = [d for d in lidar if d["detection_name"] == name]
-            
-            if name in filter_classes:
-                rd = [d for d in rgb if d["detection_name"] == name]
-
-                anchor_center = box_center(rd)
-                group_center = box_center(ld)
-
-                if len(anchor_center) == 0 or len(group_center) == 0:
-                    continue 
+            filter_lidar = []
+            for name in CLASSES:
+                ld = [d for d in lidar if d["detection_name"] == name]
                 
-                dist_mat = distance_matrix(anchor_center, group_center)
-                dist = np.min(dist_mat, axis=0)
+                if name in filter_classes:
+                    rd = [d for d in rgb if d["detection_name"] == name]
 
-                for box, dst in zip(ld, dist):
-                    if dst < dist_th:
-                        filter_lidar.append(box)
-            else:
-                filter_lidar += list(np.array(ld))
+                    anchor_center = box_center(rd)
+                    group_center = box_center(ld)
 
-        predictions["results"][sample_token] = filter_lidar
+                    if len(anchor_center) == 0 or len(group_center) == 0:
+                        continue 
+                    
+                    dist_mat = distance_matrix(anchor_center, group_center)
+                    dist = np.min(dist_mat, axis=0)
 
-        return predictions
+                    for box, dst in zip(ld, dist):
+                        if dst < dist_th:
+                            filter_lidar.append(box)
+                else:
+                    filter_lidar += list(np.array(ld))
+
+            predictions["results"][sample_token] = filter_lidar
+
+            return predictions
 
     def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
@@ -485,7 +486,7 @@ def multimodal_filter(self, predictions, rgb):
         nusc_eval = NuScenesEval(
             nusc,
             config=self.eval_detection_configs,
-            result_path=result_path,
+            result_path=result_path[0],
             eval_set=eval_set_map[self.version],
             output_dir=out_path,
             metric=metric_type,
@@ -647,10 +648,10 @@ def multimodal_filter(self, predictions, rgb):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-        #if out_path is not None:
-        #    pipeline = kwargs.get("pipeline", None)
-        #    self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
-
+        # if out_path is not None:
+        #     pipeline = kwargs.get("pipeline", None)
+        #     self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
+            # import ipdb; ipdb.set_trace()
         metric_type = kwargs.get("metric_type", None)
         filter = kwargs.get("filter", None)
 
@@ -716,14 +717,15 @@ def multimodal_filter(self, predictions, rgb):
                                                Coord3DMode.DEPTH)
             inds = result['scores_3d'] > 0.1
             gt_bboxes = self.get_ann_info(i)['gt_bboxes_3d'].tensor.numpy()
-            show_gt_bboxes = Box3DMode.convert(gt_bboxes, Box3DMode.LIDAR,
-                                               Box3DMode.DEPTH)
-            pred_bboxes = result['boxes_3d'][inds].tensor.numpy()
-            show_pred_bboxes = Box3DMode.convert(pred_bboxes, Box3DMode.LIDAR,
-                                                 Box3DMode.DEPTH)
-            show_result(points, show_gt_bboxes, show_pred_bboxes, out_dir,
+            # show_gt_bboxes = Box3DMode.convert(gt_bboxes, Box3DMode.LIDAR,
+            #                                    Box3DMode.DEPTH)
+            pred_bboxes = result['boxes_3d'][:,:7][inds].tensor.numpy()
+            # show_pred_bboxes = Box3DMode.convert(pred_bboxes, Box3DMode.LIDAR,
+            #                                      Box3DMode.DEPTH)
+            # show_result(points, show_gt_bboxes, show_pred_bboxes, out_dir,
+            #             file_name, show)
+            show_result(points, gt_bboxes, pred_bboxes, out_dir,
                         file_name, show)
-
 
 def output_to_nusc_box(detection, with_velocity=True):
     """Convert the output to the box class in the nuScenes.
