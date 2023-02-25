@@ -180,7 +180,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     test_dataloader_default_args = dict(
-        samples_per_gpu=1, workers_per_gpu=2, dist=distributed, shuffle=False)
+        samples_per_gpu=1, workers_per_gpu=0, dist=distributed, shuffle=False)
 
     # in case the test dataset is concatenated
     if isinstance(cfg.data.test, dict):
@@ -207,6 +207,7 @@ def main():
 
     # build the dataloader
     dataset = build_dataset(cfg.data.test)
+
     data_loader = build_dataloader(dataset, **test_loader_cfg)
 
     if args.cached is None: 
@@ -242,7 +243,7 @@ def main():
                 broadcast_buffers=False)
             outputs = multi_gpu_test(model, data_loader, args.tmpdir,
                                     args.gpu_collect)
-
+            # print(outputs)
     rank, _ = get_dist_info()
     if rank == 0:
         if args.out:
@@ -281,8 +282,9 @@ def main():
                 out_path = "/".join(args.cached.split("/")[:-1])
             if args.predictions is not None:
                 out_path = "/".join(args.predictions.split("/")[:-1])
+            print(dataset.evaluate(outputs, out_path=out_path, **eval_kwargs))
+            # print(dataset.evaluate(outputs))
 
-            print(dataset.evaluate(outputs, out_path, **eval_kwargs))
 
 
 if __name__ == '__main__':
