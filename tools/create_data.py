@@ -76,8 +76,6 @@ def nuscenes_data_prep(root_path,
     """
     nuscenes_converter.create_nuscenes_infos(root_path, info_prefix, out_dir, version=version, max_sweeps=max_sweeps)
     if version =='v1.0-test':
-        info_train_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_test.pkl')
-        nuscenes_converter.export_2d_annotation(root_path, info_test_path, version=version)
         return 
         
     info_train_path = osp.join(root_path, f'{out_dir}/{info_prefix}_infos_train.pkl')
