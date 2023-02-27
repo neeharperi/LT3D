@@ -48,10 +48,6 @@ def distance_matrix(A, B, squared=False):
 
     return D_squared
 
-def box_center(boxes):
-    center_box = np.array([box["translation"][:2] for box in boxes])
-    return center_box
-
 @DATASETS.register_module()
 class AV2Dataset(Dataset):
     CLASSES = ('REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER',
