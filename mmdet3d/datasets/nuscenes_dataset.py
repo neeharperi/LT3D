@@ -1009,6 +1009,10 @@ def lidar_nusc_box_to_global(info,
         # filter det in ego.
         cls_range_map = eval_configs.class_range
         radius = np.linalg.norm(box.center[:2], 2)
+        
+        if box.label >= len(classes):
+            continue 
+            
         det_range = cls_range_map[classes[box.label]]
         if radius > det_range:
             continue
