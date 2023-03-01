@@ -555,14 +555,14 @@ class NuScenesDataset(Dataset):
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
         
-    def multimodal_filter(self, predictions, rgb):
+    def multimodal_filter(self, predictions, rgb_dets):
         dist_th = 8
         tokens = predictions["results"].keys()
         filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
 
         for sample_token in tokens:
             lidar = predictions["results"][sample_token]
-            rgb = rgb["results"][sample_token]
+            rgb = rgb_dets["results"][sample_token]
 
             filter_lidar = []
             for name in CLASSES:
@@ -587,8 +587,8 @@ class NuScenesDataset(Dataset):
                     filter_lidar += list(np.array(ld))
 
             predictions["results"][sample_token] = filter_lidar
-
-            return predictions
+    
+    return predictions
 
     def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
