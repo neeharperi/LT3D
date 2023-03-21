@@ -588,7 +588,7 @@ class NuScenesDataset(Dataset):
 
             predictions["results"][sample_token] = filter_lidar
     
-    return predictions
+        return predictions
 
     def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
