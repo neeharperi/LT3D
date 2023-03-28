@@ -1,6 +1,4 @@
 source ~/.bashrc
-conda create -n mmdet3d python=3.8
-conda activate mmdet3d
 
 conda install -y -c anaconda cmake
 conda install -y pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
