@@ -92,7 +92,10 @@ Data creation should be under the GPU environment.
 
 ```
 # nuScenes 
-#python tools/create_data.py nuscenes_data_prep --root_path NUSCENES_DATASET_ROOT --version v1.0-trainval
+#python tools/create_data.py nuscenes_data_prep --root_path NUSCENES_DATASET_ROOT --out-dir NUSCENES_DATASET_ROOT/nusc_mmdet3d_trainval --extra-tag nuscenes --max-sweeps 10
+
+# AV2 
+#python tools/create_data.py av2_data_prep --root_path AV2_DATASET_ROOT --out-dir AV2_DATASET_ROOT/av2_mmdet3d_trainval --extra-tag av2 --max-sweeps 5
 
 ```
 
@@ -105,11 +108,26 @@ In the end, the data and info files should be organized as follows
       ├── sweeps        <-- frames without annotation
       ├── maps          <-- unused
       |── v1.0-trainval <-- metadata and annotations
-      |__ trainval_forecast
-          |── infos_train_10sweeps_withvelo_filter_True.pkl <-- train annotations
-          |── infos_val_10sweeps_withvelo_filter_True.pkl <-- val annotations
-          |── dbinfos_train_10sweeps_withvelo.pkl <-- GT database info files
-          |── gt_database_10sweeps_withvelo <-- GT database 
+      |__ nusc_mmdet3d_trainval
+          |── nuscenes_infos_train.pkl <-- train 3D annotations
+          |── nuscenes_infos_train_mono3d.coco.json <-- train 2D annotations
+          |── nuscenes_infos_val.pkl <-- val 3D annotations
+          |── nuscenes_infos_val_mono3d.coco.json <-- val 2D annotations
+          |── nuscenes_dbinfos_train.pkl.pkl <-- GT database info files
+          |── nuscenes_gt_database <-- GT database 
+          
+# For AV2 Dataset 
+└── AV2_DATASET_ROOT
+      ├── train      <-- train data and annotations
+      ├── val        <-- val data and annotations
+      ├── test       <-- test data
+      |__ av2_mmdet3d_trainval
+          |── av2_infos_train.pkl <-- train 3D annotations
+          |── av2_infos_train_mono3d.coco.json <-- train 2D annotations
+          |── av2_infos_val.pkl <-- val 3D annotations
+          |── av2_infos_val_mono3d.coco.json <-- val 2D annotations
+          |── av2_dbinfos_train.pkl.pkl <-- GT database info files
+          |── av2_gt_database <-- GT database 
 ```
 
 
