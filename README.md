@@ -19,15 +19,15 @@ Modified from [det3d](https://github.com/poodarchu/Det3D/tree/56402d4761a5b73acd
 ### Requirements
 
 - OS: Ubuntu 18.04
-- Python: 3.7.10 
-- PyTorch: 1.8.1
-- spconv: 1.0
-- CUDA: 10.1
-- CUDNN: 7.6.5
+- Python: 3.8
+- PyTorch: 1.10.1
+- spconv: 2.0
+- CUDA: 11.1
+- CUDNN: 8.0.4.30
 - CMake 3.13.2 or higher
 
 #### Notes
-- As part of this code release we have installed this software and run the training and evaluation scripts on a new AWS instance to verify the installation process described below. 
+- As part of this code release we have installed this software and run the training and evaluation scripts in a new conda environment to verify the installation process described below. 
 
 ### Basic Installation 
 
@@ -42,10 +42,16 @@ git clone git@github.com:neeharperi/LT3D.git
 
 ```bash
 # Set the CUDA/CuDNN path (change the path to your own CUDA location) 
-export PATH=/usr/local/cuda-10.1/bin:$PATH
-export CUDA_ROOT=/usr/local/cuda-10.1
-export CUDA_HOME=/usr/local/cuda-10.1
-export LD_LIBRARY_PATH=/usr/local/cuda-10.1/lib64:$LD_LIBRARY_PATH
+export PATH=/opt/cuda/11.1.1/bin:$PATH
+export CUDA_ROOT=/opt/cuda/11.1.1
+export CUDA_HOME=/opt/cuda/11.1.1
+export LD_LIBRARY_PATH=/opt/cuda/11.1.1/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/opt/cuda/11.1.1/lib:$LD_LIBRARY_PATH
+
+export CUDNN_ROOT=/opt/cudnn/cuda-11.1/8.0.4.30/cuda
+export CUDNN_HOME=/opt/cudnn/cuda-11.1/8.0.4.30/cuda
+export CUDNN_LIBRARY=/opt/cudnn/cuda-11.1/8.0.4.30/cuda/lib64
+export CUDNN_INCLUDE_DIR=/opt/cudnn/cuda-11.1/8.0.4.30/cuda/include
 ```
 
 #### nuScenes LT3D dev-kit
@@ -67,15 +73,7 @@ git clone git@github.com:neeharperi/av2-lt3d.git
 bash setup.sh
 ```
 
-## Use FutureDet
-Be sure to change the paths in configs and syspath in the following files:
-- train.py
-- evaluate.py
-- trajectory.py
-- visualize.py
-- det3d/datasets/nuscenes/nuscenes.py
-- tools/create_data.py
-- tools/dist_test.py
+We also provide additional setup instructions for using AWS or Lambda Cloud under setup.
 
 ### Benchmark Evaluation and Training
 
