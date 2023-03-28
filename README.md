@@ -139,6 +139,9 @@ Use the following command to start a distributed training and evaluation. The mo
 
 ### [Pre-trained Models](http://www.neeharperi.com/TODO)
 
+### TransFusion: https://github.com/neeharperi/TransFusion-LT3D
+### MMDetection3D Documentation: https://mmdetection3d.readthedocs.io/en/latest/
+
 ## Acknowlegement
 This project is not possible without multiple great opensourced codebases. We list some notable examples below. 
 
