@@ -1,19 +1,5 @@
 source ~/.bashrc
 
-export PYTHONPATH="${PYTHONPATH}:/home/ubuntu/Workspace/Core/nuscenes-lt3d/python-sdk"
-export PYTHONPATH="${PYTHONPATH}:/home/ubuntu/Workspace/Core/av2-lt3d/src"
-
-export PATH=/usr/lib/cuda/bin:$PATH
-export CUDA_ROOT=/usr
-export CUDA_HOME=/usr
-export LD_LIBRARY_PATH=/usr/lib/cuda/lib64:$LD_LIBRARY_PATH
-
-wget https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh
-sh Anaconda3-2021.11-Linux-x86_64.sh
-
-conda create -n mmdet3d python=3.8
-conda activate mmdet3d
-
 conda install -y -c anaconda cmake
 conda install pytorch==1.12.0 torchvision==0.13.0 torchaudio==0.12.0 cudatoolkit=11.6 -c pytorch -c conda-forge
 
