@@ -86,6 +86,12 @@ We also provide additional setup instructions for using AWS or Lambda Cloud unde
        ├── sweeps        <-- frames without annotation
        ├── maps          <-- unused
        ├── v1.0-trainval <-- metadata
+       
+# For AV2 Dataset         
+└── AV2_DATASET_ROOT
+       ├── train       <-- train data and annotations
+       ├── val         <-- val data and annotations
+       ├── test        <-- test data
 ```
 
 Data creation should be under the GPU environment.
@@ -133,30 +139,54 @@ In the end, the data and info files should be organized as follows
 
 Use the following command to start a distributed training and evaluation. The models, logs, and evaluation results will be saved to ```work_dirs/CONFIG_NAME```.
 
-#### LiDAR-Only Models
+#### LiDAR-Only Detection Models
+This codebase supports PointPillars, CBGS, and CenterPoint. See configs for more details
 ```bash
+# Single GPU Training
+python tools/train.py CONFIG_FILE --no-validate
 
+# Distributed Training
+bash tools/dist_train.sh CONFIG_FILE NUM_GPU --no-validate
 ```
 
-#### Monocular RGB Models
+#### Monocular RGB Detection Models
+This codebase supports FCOS3D and PGD. See config for more details.
 ```bash
+# Single GPU Training
+python tools/train.py CONFIG_FILE --no-validate
 
+# Distributed Training
+bash tools/dist_train.sh CONFIG_FILE NUM_GPU --no-validate
 ```
 
-#### FutureDet
+#### Detection Evaluation 
 ```bash
+# Single GPU Inference
+python tools/test.py CONFIG_FILE MODEL_PATH/latest.pth --out MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC
 
-
+# Distributed GPU Inference
+bash tools/dist_test.sh CONFIG_FILE MODEL_PATH/latest.pth 8 --out MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC
 ```
-#### Evaluation Parameters
-```bash
 
+#### Detection Evaluation Parameters
+```
+CONFIG_FILE -> Path to config file used to define model architecture, training, and inference parameters
+MODEL_PATH -> Path to directory with model weights
+METRIC -> We evaluate per-class AP and hierarchical AP respectively [standard | hierarchy]
 ```
 
-### [Pre-trained Models](http://www.neeharperi.com/TODO)
+### [Pre-trained Detection Models](http://www.neeharperi.com/TODO)
 
-### TransFusion: https://github.com/neeharperi/TransFusion-LT3D
+### TransFusion LT3D: https://github.com/neeharperi/TransFusion-LT3D
 ### MMDetection3D Documentation: https://mmdetection3d.readthedocs.io/en/latest/
+
+### Tracking 
+
+### Tracking Evaluation
+
+### Forecasting 
+
+### Forecasting Evaluation 
 
 ## Acknowlegement
 This project is not possible without multiple great opensourced codebases. We list some notable examples below. 
