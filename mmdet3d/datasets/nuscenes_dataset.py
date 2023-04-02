@@ -14,6 +14,7 @@ from .builder import DATASETS
 from .custom_3d import Custom3DDataset
 from .pipelines import Compose
 import pandas as pd
+import json
 
 def distance_matrix(A, B, squared=False):
     M = A.shape[0]
@@ -32,6 +33,10 @@ def distance_matrix(A, B, squared=False):
         return np.sqrt(D_squared)
 
     return D_squared
+
+def box_center(boxes):
+    center_box = np.array([box["translation"][:2] for box in boxes])
+    return center_box
 
 @DATASETS.register_module()
 class NuScenesDataset(Custom3DDataset):
@@ -344,17 +349,18 @@ class NuScenesDataset(Custom3DDataset):
             gt_names=gt_names_3d)
         return anns_results
 
-    def multimodal_filter(self, predictions, rgb):
+    def multimodal_filter(self, predictions, rgb_pre):
         dist_th = 8
         tokens = predictions["results"].keys()
         filter_classes = ['truck', 'trailer', 'bus', 'construction_vehicle', 'bicycle', 'motorcycle', 'emergency_vehicle', 'child', 'police_officer', 'construction_worker', 'stroller', 'personal_mobility', 'pushable_pullable', 'debris'] 
-
+        # filter_classes = self.CLASSES
+        # ; ipdb.set_trace()
         for sample_token in tokens:
             lidar = predictions["results"][sample_token]
-            rgb = rgb["results"][sample_token]
-
+            rgb = rgb_pre["results"][sample_token]
+            
             filter_lidar = []
-            for name in CLASSES:
+            for name in self.CLASSES:
                 ld = [d for d in lidar if d["detection_name"] == name]
                 
                 if name in filter_classes:
@@ -377,7 +383,7 @@ class NuScenesDataset(Custom3DDataset):
 
             predictions["results"][sample_token] = filter_lidar
 
-            return predictions
+        return predictions
 
     def _format_bbox(self, results, jsonfile_prefix=None, filter=None):
         """Convert the results to the standard format.
@@ -650,8 +656,9 @@ class NuScenesDataset(Custom3DDataset):
         """
         # if out_path is not None:
         #     pipeline = kwargs.get("pipeline", None)
+        #     import ipdb; ipdb.set_trace()
+
         #     self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
-            # import ipdb; ipdb.set_trace()
         metric_type = kwargs.get("metric_type", None)
         filter = kwargs.get("filter", None)
 
@@ -706,26 +713,27 @@ class NuScenesDataset(Custom3DDataset):
         assert out_dir is not None, 'Expect out_dir, got none.'
         pipeline = self._get_pipeline(pipeline)
         for i, result in enumerate(results):
-            if 'pts_bbox' in result.keys():
-                result = result['pts_bbox']
-            data_info = self.data_infos[i]
-            pts_path = data_info['lidar_path']
-            file_name = osp.split(pts_path)[-1].split('.')[0]
-            points = self._extract_data(i, pipeline, 'points').numpy()
-            # for now we convert points into depth mode
-            points = Coord3DMode.convert_point(points, Coord3DMode.LIDAR,
-                                               Coord3DMode.DEPTH)
-            inds = result['scores_3d'] > 0.1
-            gt_bboxes = self.get_ann_info(i)['gt_bboxes_3d'].tensor.numpy()
-            # show_gt_bboxes = Box3DMode.convert(gt_bboxes, Box3DMode.LIDAR,
-            #                                    Box3DMode.DEPTH)
-            pred_bboxes = result['boxes_3d'][:,:7][inds].tensor.numpy()
-            # show_pred_bboxes = Box3DMode.convert(pred_bboxes, Box3DMode.LIDAR,
-            #                                      Box3DMode.DEPTH)
-            # show_result(points, show_gt_bboxes, show_pred_bboxes, out_dir,
-            #             file_name, show)
-            show_result(points, gt_bboxes, pred_bboxes, out_dir,
-                        file_name, show)
+            if i==0:
+                if 'pts_bbox' in result.keys():
+                    result = result['pts_bbox']
+                data_info = self.data_infos[i]
+                pts_path = data_info['lidar_path']
+                file_name = osp.split(pts_path)[-1].split('.')[0]
+                points = self._extract_data(i, pipeline, 'points').numpy()
+                # for now we convert points into depth mode
+                points = Coord3DMode.convert_point(points, Coord3DMode.LIDAR,
+                                                Coord3DMode.DEPTH)
+                inds = result['scores_3d'] > 0.1
+                gt_bboxes = self.get_ann_info(i)['gt_bboxes_3d'].tensor.numpy()
+                show_gt_bboxes = Box3DMode.convert(gt_bboxes, Box3DMode.LIDAR,
+                                                Box3DMode.DEPTH)
+                pred_bboxes = result['boxes_3d'][:,:7][inds].tensor.numpy()
+                show_pred_bboxes = Box3DMode.convert(pred_bboxes, Box3DMode.LIDAR,
+                                                    Box3DMode.DEPTH)
+                # show_result(points, show_gt_bboxes, show_pred_bboxes, out_dir,
+                #             file_name, show)
+                show_result(points, gt_bboxes, pred_bboxes, out_dir,
+                            file_name, show)
 
 def output_to_nusc_box(detection, with_velocity=True):
     """Convert the output to the box class in the nuScenes.
@@ -801,7 +809,10 @@ def lidar_nusc_box_to_global(info,
         # filter det in ego.
         cls_range_map = eval_configs.class_range
         radius = np.linalg.norm(box.center[:2], 2)
-        det_range = cls_range_map[classes[box.label]]
+        try:
+            det_range = cls_range_map[classes[box.label]]
+        except:
+            import ipdb; ipdb.set_trace()
         if radius > det_range:
             continue
         # Move box to global coord system
