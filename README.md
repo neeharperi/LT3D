@@ -196,13 +196,13 @@ This project is not possible without multiple great opensourced codebases. We li
 * [mmdetection](https://github.com/open-mmlab/mmdetection)
 * [mmdetection3d](https://github.com/open-mmlab/mmdetection3d)
 
-Thanks Andrew Shen (@Redrew) for helping with the tracking and forecasting baselines and evaluation and Yechi Ma (@mayechi) for helping test this codebase. 
+Thanks Andrew Shen (@Redrew) for helping with the tracking baselines and evaluation and Yechi Ma (@mayechi) for helping test this codebase. 
 
 If you find this codebase useful, please consider citing:
 
     @article{peri2022towards,
       title={Towards Long Tailed 3D Detection},
-      author={Peri, Neehar and Ramanan, Deva, and Kong, Shu},
+      author={Peri, Neehar and Dave, Achal and Ramanan, Deva, and Kong, Shu},
       journal={CoRL},
       year={2022},
     }
