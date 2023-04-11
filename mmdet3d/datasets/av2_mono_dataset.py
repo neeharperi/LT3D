@@ -661,17 +661,17 @@ class AV2MonoDataset(Dataset):
             pd.DataFrame.to_csv(predictionsDataFrame, out_path + "/{}_detections.csv".format(split))
 
         metric_type = kwargs.get("metric_type", None)
+        max_range = 50
+       
+        cfg = DetectionCfg(dataset_dir = Path("/home/ubuntu/Workspace/Data/Sensor/{}".format(split)), max_range_m=max_range)
 
-        for max_range in [50, 100, 150]:
-            cfg = DetectionCfg(dataset_dir = Path("/home/ubuntu/Workspace/Data/Sensor/{}".format(split)), max_range_m=max_range)
-
-            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
-            print(metrics)
-            
-            if out_path is not None:
-                max_range_tag = "_{}m".format(max_range)
-                metric_tag = "_{}".format(metric_type)
-                pd.DataFrame.to_csv(metrics, out_path + "/results{}{}.csv".format(max_range_tag, metric_tag))
+        _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, cfg)
+        print(metrics)
+        
+        if out_path is not None:
+            max_range_tag = "_{}m".format(max_range)
+            metric_tag = "_{}".format(metric_type)
+            pd.DataFrame.to_csv(metrics, out_path + "/results{}{}.csv".format(max_range_tag, metric_tag))
 
         return metrics.to_json()
 
