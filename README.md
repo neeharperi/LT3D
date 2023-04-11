@@ -63,7 +63,11 @@ git clone git@github.com:neeharperi/nuscenes-lt3d.git
 #### Argoverse 2.0 LT3D dev-kit
 
 ```bash
-git clone git@github.com:argoverse/av2-api.git
+#Latest Changes
+git clone git@github.com:neeharperi/av2-api.git
+
+#AV2 API
+pip install av2
 ```
 
 
