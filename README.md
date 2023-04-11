@@ -182,7 +182,7 @@ METRIC -> We evaluate per-class AP and hierarchical AP respectively [standard | 
 ### TransFusion LT3D: https://github.com/neeharperi/TransFusion-LT3D
 ### MMDetection3D Documentation: https://mmdetection3d.readthedocs.io/en/latest/
 
-### Tracking 
+#### Tracking 
 ```bash
 #AB3DMOT
 python test_tracker.py --tracker ab3dmot_tracker --dataset {av2|nuscenes} --split {val|test}
@@ -191,14 +191,14 @@ python test_tracker.py --tracker ab3dmot_tracker --dataset {av2|nuscenes} --spli
 python test_tracker.py --tracker greedy_tracker --dataset {av2|nuscenes} --split {val|test}
 ```
 
-### Tracking Parameters
+#### Tracking Parameters
 ```
 tracker -> Select tracking algorithm
 dataset -> Select supported dataset 
 split -> Select dataset split
 ```
 
-### Forecasting 
+#### Forecasting 
 ```bash
 # Linear Forecaster
 python test_forecaster.py --track_predictions TRACK_PREDICTIONS --forecaster linear_forecaster --dataset {av2|nuscenes} --split {val|test}
@@ -209,7 +209,7 @@ python lstm.py #Trains LSTM
 python test_forecaster.py --track_predictions TRACK_PREDICTIONS --forecaster lstm_forecaster --dataset {av2|nuscenes} --split {val|test}
 ```
 
-### Forecasting Parameters
+#### Forecasting Parameters
 ```
 TRACK_PREDICTIONS -> Path to track predicitons file
 forecaster -> Select forecaster algorithm
