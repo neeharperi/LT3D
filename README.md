@@ -98,10 +98,10 @@ Data creation should be under the GPU environment.
 
 ```
 # nuScenes 
-#python tools/create_data.py nuscenes --root-path NUSCENES_DATASET_ROOT --out-dir NUSCENES_DATASET_ROOT/nusc_mmdet3d_trainval --extra-tag nuscenes --max-sweeps 10
+python tools/create_data.py nuscenes --root-path NUSCENES_DATASET_ROOT --out-dir NUSCENES_DATASET_ROOT/nusc_mmdet3d_trainval --extra-tag nuscenes --max-sweeps 10
 
 # AV2 
-#python tools/create_data.py av2 --root-path AV2_DATASET_ROOT --out-dir AV2_DATASET_ROOT/av2_mmdet3d_trainval --extra-tag av2 --max-sweeps 5
+python tools/create_data.py av2 --root-path AV2_DATASET_ROOT --out-dir AV2_DATASET_ROOT/av2_mmdet3d_trainval --extra-tag av2 --max-sweeps 5
 
 ```
 
