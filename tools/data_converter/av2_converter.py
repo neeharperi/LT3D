@@ -365,7 +365,7 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
         log_dir = "{root_path}/{split}/{log_id}".format(root_path=root_path, split=split, log_id=log_id)
         lidar_paths = "{log_dir}/sensors/lidar".format(log_dir=log_dir)
         annotations_path = "{log_dir}/annotations.feather".format(log_dir=log_dir)
-        annotations = read_feather(annotations_path)
+        annotations = read_feather(Path(annotations_path))
 
         mmcv.check_file_exist(annotations_path)
 
@@ -387,7 +387,7 @@ def create_av2_infos(root_path, info_prefix, out_dir, max_sweeps=5):
         log_dir = "{root_path}/{split}/{log_id}".format(root_path=root_path, split=split, log_id=log_id)
         lidar_paths = "{log_dir}/sensors/lidar".format(log_dir=log_dir)
         annotations_path = "{log_dir}/annotations.feather".format(log_dir=log_dir)
-        annotations = read_feather(annotations_path)
+        annotations = read_feather(Path(annotations_path))
 
         mmcv.check_file_exist(annotations_path)
 

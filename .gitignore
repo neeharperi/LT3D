@@ -119,6 +119,12 @@ exps/
 *~
 mmdet3d/.mim
 results/
+tracking/dataset/
+tracking/results*/
+forecasting/dataset/
+forecasting/results/
+forecasting/lstm/dataset/
+forecasting/lstm/models/
 
 # Pytorch
 *.pth

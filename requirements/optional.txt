@@ -5,3 +5,4 @@ scikit-learn
 filterpy==1.4.5
 numba==0.56.4
 git+https://github.com/JonathonLuiten/TrackEval.git
+filterpy

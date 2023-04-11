@@ -636,11 +636,11 @@ class AV2Dataset(Dataset):
     def evaluate(self, results, out_path=None, **kwargs):
         """Evaluate.
         """
-        from av2.evaluation.detection.eval import evaluate
+        from av2.evaluation.detection.eval import evaluate, evaluate_hierarchy
         from av2.evaluation.detection.utils import DetectionCfg
 
         split = "val"
-
+        max_range = 50
         #if out_path is not None:
         #    pipeline = kwargs.get("pipeline", None)
         #    self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
@@ -666,11 +666,6 @@ class AV2Dataset(Dataset):
                 rgbPredictionsDataFrame = pd.read_csv(filter)
                 predictionsDataFrame = self.multimodal_filter(predictionsDataFrame, rgbPredictionsDataFrame)
 
-        if metric_type == "standard":
-            range_list = [(0, 50), (50, 100), (100, 150), (0, 150)]
-        else:
-            range_list = [(0, 50)]
-
         user = os.getlogin()
 
         if user == "nperi":
@@ -678,17 +673,23 @@ class AV2Dataset(Dataset):
         elif user == "ubuntu":
             data_root = "/home/ubuntu/Workspace/Data/Sensor/"
 
-        for min_range, max_range in range_list:
-            cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), min_range_m=min_range, max_range_m=max_range)
-
-            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, metric_type, cfg)
+       
+        cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
         
-            print(metrics)
-            if out_path is not None:
-                filter_tag = "_filter" if filter is not None else ""
-                range_tag = "_{}m-{}m".format(min_range, max_range)
-                metric_tag = "_{}".format(metric_type)
+        if metric_type == "standard":
+            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, cfg)
+        
+        elif metric_type == "hierarchy":
+            metrics = evaluate_hierarchy(predictionsDataFrame, groundTruthDataFrame, cfg)
 
-                pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, range_tag, metric_tag))
+        else:
+            assert False, "Unsupported metric_type {}".format(metric_type)
+        print(metrics)
+        if out_path is not None:
+            filter_tag = "_filter" if filter is not None else ""
+            range_tag = "{}m".format(max_range)
+            metric_tag = "_{}".format(metric_type)
+
+            pd.DataFrame.to_csv(metrics, out_path + "/results{}{}{}.csv".format(filter_tag, range_tag, metric_tag))
 
         return metrics.to_json()
