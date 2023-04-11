@@ -63,7 +63,7 @@ git clone git@github.com:neeharperi/nuscenes-lt3d.git
 #### Argoverse 2.0 LT3D dev-kit
 
 ```bash
-git clone git@github.com:neeharperi/av2-lt3d.git
+git clone git@github.com:argoverse/av2-api.git
 ```
 
 
@@ -98,10 +98,10 @@ Data creation should be under the GPU environment.
 
 ```
 # nuScenes 
-#python tools/create_data.py nuscenes_data_prep --root_path NUSCENES_DATASET_ROOT --out-dir NUSCENES_DATASET_ROOT/nusc_mmdet3d_trainval --extra-tag nuscenes --max-sweeps 10
+#python tools/create_data.py nuscenes --root-path NUSCENES_DATASET_ROOT --out-dir NUSCENES_DATASET_ROOT/nusc_mmdet3d_trainval --extra-tag nuscenes --max-sweeps 10
 
 # AV2 
-#python tools/create_data.py av2_data_prep --root_path AV2_DATASET_ROOT --out-dir AV2_DATASET_ROOT/av2_mmdet3d_trainval --extra-tag av2 --max-sweeps 5
+#python tools/create_data.py av2 --root-path AV2_DATASET_ROOT --out-dir AV2_DATASET_ROOT/av2_mmdet3d_trainval --extra-tag av2 --max-sweeps 5
 
 ```
 
@@ -139,8 +139,8 @@ In the end, the data and info files should be organized as follows
 
 Use the following command to start a distributed training and evaluation. The models, logs, and evaluation results will be saved to ```work_dirs/CONFIG_NAME```.
 
-#### LiDAR-Only Detection Models
-This codebase supports PointPillars, CBGS, and CenterPoint. See configs for more details
+#### LiDAR-Only Detection and Monocular RGB Detection Models
+This codebase supports PointPillars, CBGS, CenterPoint, FCOS3D, and PGD. See configs for more details
 ```bash
 # Single GPU Training
 python tools/train.py CONFIG_FILE --no-validate
@@ -149,23 +149,20 @@ python tools/train.py CONFIG_FILE --no-validate
 bash tools/dist_train.sh CONFIG_FILE NUM_GPU --no-validate
 ```
 
-#### Monocular RGB Detection Models
+#### Detection Training Parameters
 This codebase supports FCOS3D and PGD. See config for more details.
-```bash
-# Single GPU Training
-python tools/train.py CONFIG_FILE --no-validate
-
-# Distributed Training
-bash tools/dist_train.sh CONFIG_FILE NUM_GPU --no-validate
+```
+CONFIG_FILE -> Path to config file used to define model architecture, training, and inference parameters
+NUM_GPU -> Number of GPUs
 ```
 
 #### Detection Evaluation 
 ```bash
 # Single GPU Inference
-python tools/test.py CONFIG_FILE MODEL_PATH/latest.pth --out MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC
+python tools/test.py CONFIG_FILE MODEL_PATH/latest.pth --{out|cached} MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC {--filter FILTER_DETECTIONS} {--predictions PREDICTIONS_FILE} {--ground_truth GROUND_TRUTH_FILE}
 
 # Distributed GPU Inference
-bash tools/dist_test.sh CONFIG_FILE MODEL_PATH/latest.pth 8 --out MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC
+bash tools/dist_test.sh CONFIG_FILE MODEL_PATH/latest.pth 8 --{out|cached} MODEL_PATH/predictions.pkl --eval mAP --metric_type METRIC {--filter FILTER_DETECTIONS} {--predictions PREDICTIONS_FILE} {--ground_truth GROUND_TRUTH_FILE}
 ```
 
 #### Detection Evaluation Parameters
@@ -173,20 +170,54 @@ bash tools/dist_test.sh CONFIG_FILE MODEL_PATH/latest.pth 8 --out MODEL_PATH/pre
 CONFIG_FILE -> Path to config file used to define model architecture, training, and inference parameters
 MODEL_PATH -> Path to directory with model weights
 METRIC -> We evaluate per-class AP and hierarchical AP respectively [standard | hierarchy]
+
+(Optional) out / cached -> out runs inference and cached uses the MODEL_PATH/predictions.pkl file. You must pick one of the two options
+(Optional) filter -> Performs Multi-Modal Filtering as described in "Towards Long-Tailed 3D Detection". FILTER_DETECTIONS is the output detections in json/csv format for nuScenes/AV2 respectively
+(Optional) predictions -> Direclty load predictions json/csv for nuScenes/AV2 respectively to skip preprocessing
+(Optional) ground_truth -> Direclty load ground_truth json/csv for nuScenes/AV2 respectively to skip preprocessing
 ```
 
-### [Pre-trained Detection Models](http://www.neeharperi.com/TODO)
+### [Pre-trained Detection Models](https://drive.google.com/drive/folders/1BVhYv-kJE_ydbvDDz8AA3pgDdVTSCHIT?usp=share_link)
 
 ### TransFusion LT3D: https://github.com/neeharperi/TransFusion-LT3D
 ### MMDetection3D Documentation: https://mmdetection3d.readthedocs.io/en/latest/
 
 ### Tracking 
+```bash
+#AB3DMOT
+python test_tracker.py --tracker ab3dmot_tracker --dataset {av2|nuscenes} --split {val|test}
 
-### Tracking Evaluation
+#Greedy Tracker
+python test_tracker.py --tracker greedy_tracker --dataset {av2|nuscenes} --split {val|test}
+```
+
+### Tracking Parameters
+```
+tracker -> Select tracking algorithm
+dataset -> Select supported dataset 
+split -> Select dataset split
+```
 
 ### Forecasting 
+```bash
+# Linear Forecaster
+python test_forecaster.py --track_predictions TRACK_PREDICTIONS --forecaster linear_forecaster --dataset {av2|nuscenes} --split {val|test}
 
-### Forecasting Evaluation 
+# LSTM Forecaster
+python load_train_dataset.py
+python lstm.py #Trains LSTM
+python test_forecaster.py --track_predictions TRACK_PREDICTIONS --forecaster lstm_forecaster --dataset {av2|nuscenes} --split {val|test}
+```
+
+### Forecasting Parameters
+```
+TRACK_PREDICTIONS -> Path to track predicitons file
+forecaster -> Select forecaster algorithm
+dataset -> Select supported dataset 
+split -> Select dataset split
+```
+
+NOTE: You must update data/paths.py to correctly run the tracking and forecasting baselines. Tracking and Forecasting currently only supports AV2 Evaluation. We will be adding nuScenes support shortly. 
 
 ## Acknowlegement
 This project is not possible without multiple great opensourced codebases. We list some notable examples below. 
