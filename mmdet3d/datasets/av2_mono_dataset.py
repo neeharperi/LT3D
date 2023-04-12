@@ -25,7 +25,7 @@ from ..core.bbox import (Box3DMode, CameraInstance3DBoxes,
 from .builder import DATASETS
 from .pipelines import Compose
 from .utils import extract_result_dict, get_loading_pipeline
-
+import os
 
 def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
@@ -646,26 +646,48 @@ class AV2MonoDataset(Dataset):
     def evaluate(self, results, out_path=None, **kwargs):
         """Evaluate.
         """
-        from av2.evaluation.detection.eval import evaluate
+        from av2.evaluation.detection.eval import evaluate, evaluate_hierarchy
         from av2.evaluation.detection.utils import DetectionCfg
 
         split = "val"
+        max_range = 50
+
         if out_path is not None:
             pipeline = kwargs.get("pipeline", None)
             self.show(results, out_path + "/visuals/", show=False, pipeline=pipeline)
-
-        predictionsDataFrame, groundTruthDataFrame = self.format_results(results)
-
-        if out_path is not None:
-            pd.DataFrame.to_csv(groundTruthDataFrame, out_path + "/{}_gt.csv".format(split))
-            pd.DataFrame.to_csv(predictionsDataFrame, out_path + "/{}_detections.csv".format(split))
-
+		
         metric_type = kwargs.get("metric_type", None)
-        max_range = 50
-       
-        cfg = DetectionCfg(dataset_dir = Path("/home/ubuntu/Workspace/Data/Sensor/{}".format(split)), max_range_m=max_range)
+        predictions = kwargs.get("predictions", None)
+        ground_truth = kwargs.get("ground_truth", None)
 
-        _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, cfg)
+        if predictions is not None:
+            predictionsDataFrame = pd.read_csv(predictions)
+            groundTruthDataFrame = pd.read_csv(ground_truth)
+		
+        else:
+            predictionsDataFrame, groundTruthDataFrame = self.format_results(results)
+
+            if out_path is not None:
+                pd.DataFrame.to_csv(groundTruthDataFrame, out_path + "/{}_gt.csv".format(split))
+                pd.DataFrame.to_csv(predictionsDataFrame, out_path + "/{}_detections.csv".format(split))
+
+       
+        user = os.getlogin()
+
+        if user == "nperi":
+            data_root = '/ssd0/nperi/Sensor/'
+        elif user == "ubuntu":
+            data_root = "/home/ubuntu/Workspace/Data/Sensor/"
+
+        cfg = DetectionCfg(dataset_dir = Path("{}/{}".format(data_root, split)), max_range_m=max_range)
+		
+        if metric_type == "standard":
+            _, _, metrics = evaluate(predictionsDataFrame, groundTruthDataFrame, cfg)
+        elif metric_type == "hierarchy":
+            metrics = evaluate_hierarchy(predictionsDataFrame, groundTruthDataFrame, cfg)
+        else:
+            assert False, "Invalid metric_type"
+
         print(metrics)
         
         if out_path is not None:
