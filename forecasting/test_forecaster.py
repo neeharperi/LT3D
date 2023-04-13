@@ -5,7 +5,7 @@ from data.paths import PATHS
 from data.utils import *
 from forecasting.linear_forecaster import forecast
 from forecasting.lstm.lstm import LSTMModel, generate_forecasts_from_model
-from av2.evaluation.forecasting.constants import CATEGORY_TO_VELOCITY
+from av2.evaluation.forecasting.constants import CATEGORY_TO_VELOCITY_M_PER_S
 from pprint import pprint 
 
 if __name__ == "__main__":
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     if config.dataset == "av2":
         from data.av2_adapter import av2_load_predictions_and_labels
         class_names = AV2_CLASS_NAMES
-        class_velocity = CATEGORY_TO_VELOCITY
+        class_velocity = CATEGORY_TO_VELOCITY_M_PER_S
         
         predictions, labels = av2_load_predictions_and_labels(
             paths["prediction"], paths["infos"], paths["dataset_dir"]
