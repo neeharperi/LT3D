@@ -102,7 +102,7 @@ model = dict(
         nms_across_levels=False,
         nms_pre=1000,
         nms_thr=0.05,
-        score_thr=0.2,
+        score_thr=0.01,
         min_bbox_size=0,
         max_per_img=200))
 
