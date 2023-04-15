@@ -19,7 +19,7 @@ if __name__ == "__main__":
     argparser.add_argument("--time_delta", type=float, default=0.5)
     argparser.add_argument("--num_timesteps", type=int, default=6)
     argparser.add_argument("--top_k", type=int, default=5)
-    argparser.add_argument("--ego_distance_threshold", type=int, default=50)
+    argparser.add_argument("--ego_distance_threshold_m", type=int, default=50)
     config = argparser.parse_args()
 
     paths = PATHS[config.dataset][config.split]
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     if config.split != "test":
         if config.dataset == "av2":
             from av2.evaluation.forecasting.eval import evaluate
-            res =  evaluate(forecasts, labels, config.top_k, config.ego_distance_threshold, paths["dataset_dir"])
+            res =  evaluate(forecasts, labels, config.top_k, config.ego_distance_threshold_m, paths["dataset_dir"])
             pprint(res)
         elif config.dataset == "nuscenes":
             raise Exception(f"Not Implemented Yet")

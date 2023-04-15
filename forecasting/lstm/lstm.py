@@ -113,7 +113,7 @@ def preprocess_data(labels, max_len=20, prediction_len=6):
     grouped_tracks = defaultdict(dict)
     for seq_id, frames in labels.items():
         for timestep, frame in enumerate(frames):
-            for instance in array_dict_iterator(frame, len(frame["translation"])):
+            for instance in array_dict_iterator(frame, len(frame["translation_m"])):
                 grouped_tracks[f"{seq_id}:{instance['track_id']}"][timestep] = instance
 
     data = {}
@@ -136,15 +136,15 @@ def preprocess_data(labels, max_len=20, prediction_len=6):
             prev_timestep = next(ts for ts in reversed(sorted_ts) if ts <= timestep)
             next_timestep = next(ts for ts in sorted_ts if ts > timestep)
             delta = (
-                instance_by_ts[next_timestep]["translation"]
-                - instance_by_ts[prev_timestep]["translation"]
+                instance_by_ts[next_timestep]["translation_m"]
+                - instance_by_ts[prev_timestep]["translation_m"]
             )[:2] / (next_timestep - prev_timestep)
             deltas[timestep] = delta
 
         for timestep, instance in instance_by_ts.items():
             # format features (translation, velocity)
             translation_delta = (
-                instance["translation"] - instance_by_ts[0]["translation"]
+                instance["translation_m"] - instance_by_ts[0]["translation_m"]
             )
             # normalize inputs
             feature = (
@@ -220,19 +220,19 @@ def generate_forecasts_from_model(
                 detection = index_array_values(
                     detection_frame, list(detection_frame["track_id"]).index(track_id)
                 )
-                current_translation = detection["translation"][:2]
+                current_translation = detection["translation_m"][:2]
                 prediction_at_t = current_translation + np.cumsum(delta_at_t, axis=1)
 
                 timestamp = tracks[seq_id][timestep]["timestamp_ns"]
                 forecast_elem = {
-                    "current_translation": current_translation,
+                    "current_translation_m": current_translation,
                     "detection_score": detection.get("score", 1),
                     "size": detection["size"],
                     "yaw": detection["yaw"],
                     "label": detection["label"],
                     "name": detection["name"],
                     "track_id": detection["track_id"],
-                    "prediction": prediction_at_t,
+                    "prediction_m": prediction_at_t,
                     "score": np.ones(num_modes) * detection.get("score", 1),
                     "instance_id": track_id,
                 }

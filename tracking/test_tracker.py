@@ -33,7 +33,7 @@ if __name__ == "__main__":
     argparser.add_argument("--score_threshold", type=float, default=0.1)
     argparser.add_argument("--keep_top_k", type=int, default=500)
     argparser.add_argument("--num_score_thresholds", type=int, default=10)
-    argparser.add_argument("--ego_distance_threshold", type=int, default=50)
+    argparser.add_argument("--ego_distance_threshold_m", type=int, default=50)
     config = argparser.parse_args()
 
     # load data
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     if config.split != "test":
         if config.dataset == "av2":
             from av2.evaluation.tracking.eval import evaluate
-            res =  evaluate(track_predictions, labels, config.objective_metric, config.ego_distance_threshold, paths["dataset_dir"], outputs_dir)
+            res =  evaluate(track_predictions, labels, config.objective_metric, config.ego_distance_threshold_m, paths["dataset_dir"], outputs_dir)
             pprint(res)
         elif config.dataset == "nuscenes":
             raise Exception(f"Not Implemented Yet")

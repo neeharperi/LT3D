@@ -26,19 +26,19 @@ def forecast(
                     * time_delta
                 )
                 prediction = (
-                    agent["translation"][:2]
+                    agent["translation_m"][:2]
                     + multiplier * agent["velocity"][np.newaxis, np.newaxis, :2]
                 )
                 linear_forecasts[seq_id][timestamp_ns].append(
                     {
                         "timestep_ns": timestamp_ns,
-                        "current_translation": agent["translation"][:2],
+                        "current_translation_m": agent["translation_m"][:2],
                         "detection_score": agent["score"],
                         "size": agent["size"],
                         "label": agent["label"],
                         "name": agent["name"],
                         "yaw": agent["yaw"],
-                        "prediction": prediction,
+                        "prediction_m": prediction,
                         "score": np.stack(5 * [agent["score"]]),
                         "instance_id": agent["track_id"],
                     }

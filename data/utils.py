@@ -54,7 +54,7 @@ def unpack_predictions(frames: Frames, classes: List[str]) -> Frames:
 
     Returns:
         List of prediction item where each is a dictionary with keys:
-            translation: ndarray[instance, [x, y, z]]
+            translation_m: ndarray[instance, [x, y, z]]
             size: ndarray[instance, [l, w, h]]
             yaw: ndarray[instance, float]
             velocity: ndarray[instance, [x, y]]
@@ -69,7 +69,7 @@ def unpack_predictions(frames: Frames, classes: List[str]) -> Frames:
         label = prediction["labels_3d"].numpy()
         unpacked_frames.append(
             {
-                "translation": bboxes[:, :3],
+                "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
                 "velocity": bboxes[:, -2:],
@@ -189,8 +189,8 @@ def filter_by_ego_xy_distance(frames_by_seq_id: Sequences, distance_threshold: f
             index_array_values(
                 frame,
                 np.linalg.norm(
-                    frame["translation"][:, :2]
-                    - np.array(frame["ego_translation"])[:2],
+                    frame["translation_m"][:, :2]
+                    - np.array(frame["ego_translation_m"])[:2],
                     axis=1,
                 )
                 <= distance_threshold,
@@ -203,7 +203,7 @@ def filter_by_ego_xy_distance(frames_by_seq_id: Sequences, distance_threshold: f
 def group_by_track_id(frames: Frames) -> Sequences:
     tracks_by_track_id = defaultdict(list)
     for frame_idx, frame in enumerate(frames):
-        for instance in array_dict_iterator(frame, len(frame["translation"])):
+        for instance in array_dict_iterator(frame, len(frame["translation_m"])):
             instance["frame_idx"] = frame_idx
             tracks_by_track_id[instance["track_id"]].append(instance)
     return dict(tracks_by_track_id)

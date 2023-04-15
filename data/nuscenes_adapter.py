@@ -83,7 +83,7 @@ def unpack_and_annotate_labels(
         classes = [*classes, "OTHER"]
         unpacked_labels.append(
             {
-                "translation": bboxes[:, :3],
+                "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
                 "velocity": velocity,
@@ -111,13 +111,13 @@ def transform_to_global_reference(detections: Dict[str, List[Dict]]):
             ego2global_rot = Quaternion(
                 detection["ego2global_rotation"]
             ).rotation_matrix
-            detection["translation"] = detection[
-                "translation"
+            detection["translation_m"] = detection[
+                "translation_m"
             ] @ lidar2ego_rot.T + np.array(detection["lidar2ego_translation"])
-            detection["translation"] = detection[
-                "translation"
+            detection["translation_m"] = detection[
+                "translation_m"
             ] @ ego2global_rot.T + np.array(detection["ego2global_translation"])
-            detection["ego_translation"] = list(detection["ego2global_translation"])
+            detection["ego_translation_m"] = list(detection["ego2global_translation"])
 
             # transform velocity, yaw to global reference frame
             rotation = ego2global_rot @ lidar2ego_rot
@@ -143,11 +143,11 @@ def transform_to_ego_reference(detections: Dict[str, List[Dict]]):
                 Quaternion(detection["ego2global_rotation"]).rotation_matrix
             )
 
-            detection["translation"] = (
-                detection["translation"] - np.array(detection["ego2global_translation"])
+            detection["translation_m"] = (
+                detection["translation_m"] - np.array(detection["ego2global_translation"])
             ) @ global2ego_rot.T
-            detection["translation"] = (
-                detection["translation"] - np.array(detection["lidar2ego_translation"])
+            detection["translation_m"] = (
+                detection["translation_m"] - np.array(detection["lidar2ego_translation"])
             ) @ ego2lidar_rot.T
 
             # transform velocity, yaw to lidar reference frame

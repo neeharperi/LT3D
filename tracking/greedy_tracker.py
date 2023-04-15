@@ -34,7 +34,7 @@ class GreedyTracker(object):
         self.tracks: Dict[str, np.ndarray] = {
             k: np.array([])
             for k in [
-                "translation",
+                "translation_m",
                 "xy",
                 "xy_velocity",
                 "label",
@@ -50,7 +50,7 @@ class GreedyTracker(object):
         ----------
         detections: dict
             contains the keys:
-            translation: ndarray[I, 3]
+            translation_m: ndarray[I, 3]
             size: ndarray[I, 3]
             yaw: ndarray[I]
             velocity: ndarray[I, 2]
@@ -67,7 +67,7 @@ class GreedyTracker(object):
             list of tracks, each of which is a dictionary with keys
             label: int
             detection_name: str
-            translation: ndarray
+            translation_m: ndarray
             velocity: ndarray
             track_id: int
             age: int, steps since first detection
@@ -79,10 +79,10 @@ class GreedyTracker(object):
                 [n in self.cls_velocity_error for n in detections["name"]], dtype=bool
             ),
         )
-        N = len(detections["translation"])
-        M = len(self.tracks["translation"])
+        N = len(detections["translation_m"])
+        M = len(self.tracks["translation_m"])
 
-        detections["xy"] = detections["translation"][:, :2]
+        detections["xy"] = detections["translation_m"][:, :2]
         detections["xy_velocity"] = detections["velocity"][:, :2]
         max_diff = np.array(
             [self.cls_velocity_error[n] for n in detections["name"]], np.float32

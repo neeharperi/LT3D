@@ -57,7 +57,7 @@ def load_labels_from_dataframe(df, dataset_dir, downsample_rate):
         translation[:, 2] -= size[:, 2] / 2
         label_list.append(
             {
-                "translation": translation,
+                "translation_m": translation,
                 "size": size,
                 "yaw": yaws,
                 "velocity": np.zeros((len(frame_df), 2)),  # doesn't exist
@@ -99,7 +99,7 @@ def unpack_labels(labels: List[Dict]) -> List[Dict]:
         )
         unpacked_labels.append(
             {
-                "translation": bboxes[:, :3],
+                "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
                 "velocity": velocity,
@@ -130,10 +130,10 @@ def transform_to_global_reference(
         for detection in frames:
             # transform xyz, velocity and yaw to city reference frame
             ego_to_city_SE3 = city_SE3_by_seq_id[seq_id][detection["timestamp_ns"]]
-            detection["translation"] = ego_to_city_SE3.transform_from(
-                detection["translation"]
+            detection["translation_m"] = ego_to_city_SE3.transform_from(
+                detection["translation_m"]
             )  # I (number of instances), 3
-            detection["ego_translation"] = list(
+            detection["ego_translation_m"] = list(
                 ego_to_city_SE3.transform_from(np.zeros(3))
             )
             rotation = ego_to_city_SE3.rotation
@@ -157,8 +157,8 @@ def transform_to_ego_reference(
             city_to_ego_SE3 = city_SE3_by_seq_id[seq_id][
                 detection["timestamp_ns"]
             ].inverse()
-            detection["translation"] = city_to_ego_SE3.transform_from(
-                detection["translation"]
+            detection["translation_m"] = city_to_ego_SE3.transform_from(
+                detection["translation_m"]
             )  # I (number of instances), 3
             rotation = city_to_ego_SE3.rotation
             detection["velocity"] = (detection["velocity"] @ rotation.T)[:, :2]  # I, 2

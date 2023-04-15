@@ -477,7 +477,7 @@ class SingleClassMOT(object):
 
         bboxes = np.concatenate(
             [
-                detections["translation"],
+                detections["translation_m"],
                 detections["yaw"].reshape(-1, 1),
                 detections["size"],
             ],
