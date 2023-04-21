@@ -57,7 +57,7 @@ def unpack_predictions(frames: Frames, classes: List[str]) -> Frames:
             translation_m: ndarray[instance, [x, y, z]]
             size: ndarray[instance, [l, w, h]]
             yaw: ndarray[instance, float]
-            velocity: ndarray[instance, [x, y]]
+            velocity_m_per_s: ndarray[instance, [x, y]]
             label: ndarray[instance, int]
             score: ndarray[instance, float]
             frame_index: ndarray[instance, int]
@@ -72,7 +72,7 @@ def unpack_predictions(frames: Frames, classes: List[str]) -> Frames:
                 "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
-                "velocity": bboxes[:, -2:],
+                "velocity_m_per_s": bboxes[:, -2:],
                 "label": label,
                 "name": np.array(
                     [classes[id] if id < len(classes) else "OTHER" for id in label]

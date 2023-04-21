@@ -27,7 +27,7 @@ def forecast(
                 )
                 prediction = (
                     agent["translation_m"][:2]
-                    + multiplier * agent["velocity"][np.newaxis, np.newaxis, :2]
+                    + multiplier * agent["velocity_m_per_s"][np.newaxis, np.newaxis, :2]
                 )
                 linear_forecasts[seq_id][timestamp_ns].append(
                     {

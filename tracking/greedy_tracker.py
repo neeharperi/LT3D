@@ -53,7 +53,7 @@ class GreedyTracker(object):
             translation_m: ndarray[I, 3]
             size: ndarray[I, 3]
             yaw: ndarray[I]
-            velocity: ndarray[I, 2]
+            velocity_m_per_s: ndarray[I, 2]
             label: ndarray[I]
             score: ndarray[I]
             timestamp_ns: ndarray[I]
@@ -68,7 +68,7 @@ class GreedyTracker(object):
             label: int
             detection_name: str
             translation_m: ndarray
-            velocity: ndarray
+            velocity_m_per_s: ndarray
             track_id: int
             age: int, steps since first detection
             active: int, number of recent consecutive matched detections
@@ -83,7 +83,7 @@ class GreedyTracker(object):
         M = len(self.tracks["translation_m"])
 
         detections["xy"] = detections["translation_m"][:, :2]
-        detections["xy_velocity"] = detections["velocity"][:, :2]
+        detections["xy_velocity"] = detections["velocity_m_per_s"][:, :2]
         max_diff = np.array(
             [self.cls_velocity_error[n] for n in detections["name"]], np.float32
         )

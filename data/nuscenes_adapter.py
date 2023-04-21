@@ -86,7 +86,7 @@ def unpack_and_annotate_labels(
                 "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
-                "velocity": velocity,
+                "velocity_m_per_s": velocity,
                 "label": np.array([classes.index(n) for n in names], dtype=int),
                 "name": names,
                 "track_id": track_ids,
@@ -122,9 +122,9 @@ def transform_to_global_reference(detections: Dict[str, List[Dict]]):
             # transform velocity, yaw to global reference frame
             rotation = ego2global_rot @ lidar2ego_rot
             velocity_3d = np.pad(
-                detection["velocity"], [(0, 0), (0, 1)]
+                detection["velocity_m_per_s"], [(0, 0), (0, 1)]
             )  # pad last dimension -> [x, y, 0]
-            detection["velocity"] = velocity_3d @ rotation.T  # I, 3
+            detection["velocity_m_per_s"] = velocity_3d @ rotation.T  # I, 3
             ego_to_city_yaw = math.atan2(rotation[1, 0], rotation[0, 0])
             detection["yaw"] = wrap_pi(detection["yaw"] + ego_to_city_yaw)  # I
 
@@ -152,7 +152,7 @@ def transform_to_ego_reference(detections: Dict[str, List[Dict]]):
 
             # transform velocity, yaw to lidar reference frame
             rotation = ego2lidar_rot @ global2ego_rot
-            detection["velocity"] = (detection["velocity"] @ rotation.T)[:, :2]  # I, 2
+            detection["velocity_m_per_s"] = (detection["velocity_m_per_s"] @ rotation.T)[:, :2]  # I, 2
             city_to_ego_yaw = math.atan2(rotation[1, 0], rotation[0, 0])
             detection["yaw"] = wrap_pi(detection["yaw"] + city_to_ego_yaw)  # I
 

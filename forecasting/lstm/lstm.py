@@ -152,7 +152,7 @@ def preprocess_data(labels, max_len=20, prediction_len=6):
                     [
                         translation_delta[:2],
                         # ego_delta[:2],
-                        instance["velocity"][:2],
+                        instance["velocity_m_per_s"][:2],
                         np.array([instance["yaw"]]),
                     ]
                 )

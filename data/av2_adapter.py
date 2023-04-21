@@ -60,7 +60,7 @@ def load_labels_from_dataframe(df, dataset_dir, downsample_rate):
                 "translation_m": translation,
                 "size": size,
                 "yaw": yaws,
-                "velocity": np.zeros((len(frame_df), 2)),  # doesn't exist
+                "velocity_m_per_s": np.zeros((len(frame_df), 2)),  # doesn't exist
                 "label": frame_df["category"]
                 .map(lambda c: classes.index(c))
                 .to_numpy(),
@@ -102,7 +102,7 @@ def unpack_labels(labels: List[Dict]) -> List[Dict]:
                 "translation_m": bboxes[:, :3],
                 "size": bboxes[:, 3:6],
                 "yaw": wrap_pi(bboxes[:, 6]),
-                "velocity": velocity,
+                "velocity_m_per_s": velocity,
                 "label": np.array(label["gt_labels"], dtype=int),
                 "name": np.array(label["gt_names"]),
                 "track_id": np.array([UUID(id).int for id in label["gt_uuid"]]),
@@ -138,9 +138,9 @@ def transform_to_global_reference(
             )
             rotation = ego_to_city_SE3.rotation
             velocity_3d = np.pad(
-                detection["velocity"], [(0, 0), (0, 1)]
+                detection["velocity_m_per_s"], [(0, 0), (0, 1)]
             )  # pad last dimension -> [x, y, 0]
-            detection["velocity"] = velocity_3d @ rotation.T  # I, 3
+            detection["velocity_m_per_s"] = velocity_3d @ rotation.T  # I, 3
             ego_to_city_yaw = math.atan2(rotation[1, 0], rotation[0, 0])
             detection["yaw"] = wrap_pi(detection["yaw"] + ego_to_city_yaw)  # I
 
@@ -161,7 +161,7 @@ def transform_to_ego_reference(
                 detection["translation_m"]
             )  # I (number of instances), 3
             rotation = city_to_ego_SE3.rotation
-            detection["velocity"] = (detection["velocity"] @ rotation.T)[:, :2]  # I, 2
+            detection["velocity_m_per_s"] = (detection["velocity_m_per_s"] @ rotation.T)[:, :2]  # I, 2
             ego_to_city_yaw = math.atan2(rotation[1, 0], rotation[0, 0])
             detection["yaw"] = wrap_pi(detection["yaw"] + ego_to_city_yaw)  # I
 
