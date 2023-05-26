@@ -83,6 +83,9 @@ if __name__ == "__main__":
         if config.dataset == "av2":
             from av2.evaluation.forecasting.eval import evaluate
             res =  evaluate(forecasts, labels, config.top_k, config.ego_distance_threshold_m, paths["dataset_dir"])
+            mAP_F = np.nanmean([metrics["mAP_F"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
+            ADE = np.nanmean([metrics["ADE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
+            FDE = np.nanmean([metrics["FDE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
             pprint(res)
         elif config.dataset == "nuscenes":
             raise Exception(f"Not Implemented Yet")
