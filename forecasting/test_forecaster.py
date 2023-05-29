@@ -86,7 +86,7 @@ if __name__ == "__main__":
             mAP_F = np.nanmean([metrics["mAP_F"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
             ADE = np.nanmean([metrics["ADE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
             FDE = np.nanmean([metrics["FDE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
-            print("mAP_F: {}, ADE: {}, FDE: {}".format(mAP_F, ADE, FDE)
+            print("mAP_F: {}, ADE: {}, FDE: {}".format(mAP_F, ADE, FDE))
         elif config.dataset == "nuscenes":
             raise Exception(f"Not Implemented Yet")
                 
