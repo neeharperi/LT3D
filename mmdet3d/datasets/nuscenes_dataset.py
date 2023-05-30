@@ -699,7 +699,7 @@ class NuScenesDataset(Dataset):
             result_path=result_path,
             eval_set=eval_set_map[self.version],
             output_dir=out_path,
-            metric=metric_type,
+            metric_type=metric_type,
             verbose=False)
         nusc_eval.main(render_curves=False)
         
