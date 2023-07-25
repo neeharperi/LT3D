@@ -237,7 +237,7 @@ If you find this codebase useful, please consider citing:
 
     @article{peri2022towards,
       title={Towards Long Tailed 3D Detection},
-      author={Peri, Neehar and Dave, Achal and Ramanan, Deva, and Kong, Shu},
+      author={Peri, Neehar and Dave, Achal and Ramanan, Deva and Kong, Shu},
       journal={CoRL},
       year={2022},
     }
