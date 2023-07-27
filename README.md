@@ -91,7 +91,7 @@ We also provide additional setup instructions for using AWS or Lambda Cloud unde
        ├── maps          <-- unused
        ├── v1.0-trainval <-- metadata
        
-# For AV2 Dataset         
+# For AV2 Sensor Dataset         
 └── AV2_DATASET_ROOT
        ├── train       <-- train data and annotations
        ├── val         <-- val data and annotations
