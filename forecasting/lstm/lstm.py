@@ -30,11 +30,11 @@ class LSTMModel(nn.Module):
         )
         self.input_proj = nn.Linear(input_dim, embedding_dim)
         nn.init.kaiming_uniform_(self.input_proj.weight)
-        self.output_proj = nn.Linear(embedding_dim, 2 * prediction_len * k)
+        self.regression_proj = nn.Linear(embedding_dim, 2 * prediction_len * k)
+        self.classification_proj = nn.Linear(embedding_dim, k)
         self.lstm_layers = nn.ModuleList(
             [nn.LSTM(embedding_dim, embedding_dim) for _ in range(num_layers)]
         )
-        self.loss = nn.MSELoss(reduction="none")
         self.dropout = nn.Dropout(dropout_p)
 
     def forward(self, input, class_cond):
@@ -46,19 +46,30 @@ class LSTMModel(nn.Module):
         for lstm_layer in self.lstm_layers:
             x_out, state = lstm_layer(x)
             x = x + self.dropout(x_out)
-        output = self.output_proj(x.reshape(B * L, -1)).reshape(
+        reg = self.regression_proj(x.reshape(B * L, -1)).reshape(
             B, L, self.k, self.prediction_len, -1
         )
-        return output
+        cls = self.classification_proj(x.reshape(B * L, -1)).reshape(
+            B, L, self.k
+        )
+        return reg, cls
 
-    def calculate_loss(self, prediction, target, mask):
+    def calculate_loss(self, reg_prediction, cls_prediction, target, mask):
         """K best loss"""
+        B, L, K = cls_prediction.shape
         # mask loss for invalid timesteps
-        loss = self.loss(
-            prediction, target.unsqueeze(2).repeat(1, 1, self.k, 1, 1)
+        reg_loss = nn.MSELoss(reduction="none")(
+            reg_prediction, target.unsqueeze(2).repeat(1, 1, self.k, 1, 1)
         ).mean(axis=-1)
-        loss = loss.masked_fill(~mask.unsqueeze(dim=2), 0).mean(axis=-1)
-        loss = loss.min(axis=-1).values.mean()
+        reg_loss = reg_loss.masked_fill(~mask.unsqueeze(dim=2), 0).mean(axis=-1)
+        cls_label = torch.argmin(reg_loss, dim=-1)
+        cls_loss = nn.CrossEntropyLoss(reduction="none")(
+            cls_prediction.reshape(B * L, K), cls_label.reshape(B * L)
+        ).reshape(B, L)
+        cls_loss = cls_loss.masked_fill(~mask.any(axis=-1), 0)
+        reg_loss = reg_loss.min(axis=-1).values
+        # mask cls loss
+        loss = (reg_loss.sum() + cls_loss.sum()) / mask.any(axis=-1).sum()
         return loss
 
 
@@ -108,7 +119,7 @@ class MotionPredictionDataset(Dataset):
         return feature, class_cond, target, mask
 
 
-def preprocess_data(labels, max_len=20, prediction_len=6):
+def preprocess_data(labels, max_len=40, prediction_len=6):
     # group tracks
     grouped_tracks = defaultdict(dict)
     for seq_id, frames in labels.items():
@@ -199,17 +210,18 @@ def generate_forecasts_from_model(
     for input, class_cond, target, mask in progressbar(dataloader, "running inference"):
         input, class_cond = input.to(device), class_cond.to(device)
         with torch.no_grad():
-            prediction = model(input, class_cond)
-        prediction = prediction.cpu().numpy()
+            reg_prediction, cls_prediction = model(input, class_cond)
+            cls_prediction = torch.softmax(cls_prediction, dim=-1)
+        reg_prediction, cls_prediction = reg_prediction.cpu().numpy(), cls_prediction.cpu().numpy()
 
         mask = mask.cpu().numpy()
         ids = dataset.keys[start_idx : start_idx + len(input)]
         start_idx += len(input)
-        for id, prediction_ot, is_valid_ot in zip(ids, prediction, mask):
+        for id, reg_prediction_ot, cls_prediction_ot, is_valid_ot in zip(ids, reg_prediction, cls_prediction, mask):
             seq_id, track_id, start_ts = id.split(":")
             track_id, start_ts = int(track_id), int(start_ts)
-            for i, (delta_at_t, is_valid_at_t) in enumerate(
-                zip(prediction_ot, is_valid_ot)
+            for i, (delta_at_t, cls_at_t, is_valid_at_t) in enumerate(
+                zip(reg_prediction_ot, cls_prediction_ot, is_valid_ot)
             ):
                 timestep = start_ts + i
                 if timestep >= len(tracks[seq_id]):
@@ -221,7 +233,7 @@ def generate_forecasts_from_model(
                     detection_frame, list(detection_frame["track_id"]).index(track_id)
                 )
                 current_translation = detection["translation_m"][:2]
-                prediction_at_t = current_translation + np.cumsum(delta_at_t, axis=1)
+                reg_prediction_at_t = current_translation + np.cumsum(delta_at_t, axis=1)
 
                 timestamp = tracks[seq_id][timestep]["timestamp_ns"]
                 forecast_elem = {
@@ -232,8 +244,8 @@ def generate_forecasts_from_model(
                     "label": detection["label"],
                     "name": detection["name"],
                     "track_id": detection["track_id"],
-                    "prediction_m": prediction_at_t,
-                    "score": np.ones(num_modes) * detection.get("score", 1),
+                    "prediction_m": reg_prediction_at_t,
+                    "score": cls_at_t,
                     "instance_id": track_id,
                 }
                 forecasts[seq_id][timestamp].append(forecast_elem)
@@ -277,10 +289,10 @@ if __name__ == "__main__":
             input, class_cond, target, mask = map(
                 lambda x: x.to(config.device), (input, class_cond, target, mask)
             )
-            prediction = model(input, class_cond)
+            reg_prediction, cls_prediction = model(input, class_cond)
 
             optim.zero_grad()
-            loss = model.calculate_loss(prediction, target, mask)
+            loss = model.calculate_loss(reg_prediction, cls_prediction, target, mask)
             loss.backward()
             optim.step()
 

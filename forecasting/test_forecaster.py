@@ -60,7 +60,7 @@ if __name__ == "__main__":
     elif config.forecaster == "lstm_forecaster":
         import torch
 
-        model = torch.load(os.path.join("lstm/models", config.dataset, "lstm.pt"))
+        model = torch.load(os.path.join("models", config.dataset, "lstm.pt"))
         # run inference
         forecasts = generate_forecasts_from_model(
             model,
