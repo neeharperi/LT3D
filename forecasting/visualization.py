@@ -135,9 +135,6 @@ if __name__ == "__main__":
     argparser.add_argument("--out", default="scene.png", type=str)
     config = argparser.parse_args()
 
-    # seq_id = "95bf6003-7068-3a78-a0c0-9e470a06e60f"
-    # forecasts = load("/home/ashen3/LT3D/results/av2-val/lstm_forecaster/forecast_predictions.pkl")
-    # labels = convert_forecast_labels(load("/home/ashen3/LT3D/dataset/av2-val/labels.pkl"))
     label_path = os.path.join("dataset", f"av2-{config.split}", "labels.pkl")
     animation = make_animation(
         config.seq_id,
