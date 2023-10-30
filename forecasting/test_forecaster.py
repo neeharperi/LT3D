@@ -1,4 +1,3 @@
-import json
 import os
 from argparse import ArgumentParser
 from data.paths import PATHS
